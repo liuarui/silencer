@@ -2,7 +2,7 @@
 
 项目地址：<https://github.com/liuarui/silencer> · 在线体验：<https://silencer.5970000.xyz/demo/>
 
-公共演示账号：`demo` / `SilencerDemo-2026!`。演示实例与私人服务分开部署，只用于查看控制台和体验本地脱敏，不连接真实上游。
+公共演示账号：`demo` / `SilencerDemo-2026!`。只用于查看控制台和体验本地脱敏，不连接真实上游。
 
 Silencer 是面向 AI 客户端的自托管隐私脱敏服务，可运行在你控制的服务器或其他主机上。支持 Base URL 的客户端把请求发送到 Silencer 的代理入口；请求在 Silencer 实例所在主机脱敏后转发给上游，响应返回时再流式还原。Web 控制台用于管理实例。默认不发送遥测，配置和数据由部署者控制。
 
