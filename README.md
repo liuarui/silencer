@@ -20,7 +20,7 @@ Silencer 是面向 AI 客户端的隐私脱敏网关。请求转发前，将敏�
 
 ## 快速启动
 
-发布镜像当前提供 `linux/amd64`：
+发布镜像支持 `linux/amd64` 和 `linux/arm64`，`1.0.0` 与 `latest` 会自动选择本机架构：
 
 ```bash
 docker pull liuarui/silencer:1.0.0

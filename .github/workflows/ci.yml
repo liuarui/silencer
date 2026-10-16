@@ -6,7 +6,16 @@ permissions:
   contents: read
 jobs:
   gateway:
-    runs-on: ubuntu-latest
+    name: gateway (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 25
     services:
       mysql:
@@ -36,5 +45,5 @@ jobs:
       - run: bash scripts/verify-all.sh
         env:
           SILENCER_TEST_MYSQL_DSN: root:synthetic-ci-password@tcp(127.0.0.1:${{ job.services.mysql.ports[3306] }})/silencer_test?parseTime=true
-      - run: docker build -t silencer:test .
-      - run: bash scripts/test-image.sh silencer:test
+      - run: docker build --platform '${{ matrix.platform }}' -t silencer:test .
+      - run: bash scripts/test-image.sh silencer:test '${{ matrix.platform }}'

@@ -20,7 +20,7 @@ See [website/README.md](website/README.md) for the static website source and dep
 
 ## Quick start
 
-Published images currently target `linux/amd64`:
+Published images support `linux/amd64` and `linux/arm64`. Both `1.0.0` and `latest` automatically select the host architecture:
 
 ```bash
 docker pull liuarui/silencer:1.0.0

@@ -2,6 +2,9 @@
 set -euo pipefail
 
 image_ref="${1:-silencer:test}"
+if [[ -n "${2:-}" ]]; then
+  export DOCKER_DEFAULT_PLATFORM="$2"
+fi
 smoke_name="silencer-smoke-$(date +%s)-$$"
 data_volume="$smoke_name-data"
 smoke_token=synthetic-image-test-token
@@ -28,6 +31,11 @@ start_gateway() {
 
 start_gateway
 curl -fsS -H "X-Silencer-Token: $smoke_token" \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"Contact image-test@example.com or 13800138000"}' \
+  "$smoke_address/api/demo/mask" \
+  | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["ok"] and r["count"] >= 2 and "image-test@example.com" not in r["masked"] and "13800138000" not in r["masked"]'
+curl -fsS -H "X-Silencer-Token: $smoke_token" \
   -H 'Content-Type: application/json' -d '{"session_ttl":777,"max_concurrency":7,"max_response_bytes":1048576}' \
   "$smoke_address/api/config" >/dev/null
 docker exec "$smoke_name" test -s /data/control.json
@@ -46,4 +54,4 @@ curl -fsS -H "X-Silencer-Token: $changed_token" "$smoke_address/api/config" \
   | python3 -c 'import json,sys; c=json.load(sys.stdin); assert c["session_ttl"] == 777 and c["max_concurrency"] == 7 and c["max_response_bytes"] == 1048576'
 status="$(curl -sS -o /dev/null -w '%{http_code}' -H "X-Silencer-Token: $smoke_token" "$smoke_address/api/config")"
 [[ "$status" == 401 ]] || { echo 'image smoke: old password still accepted' >&2; exit 1; }
-echo 'image smoke: readiness, extension shutdown, settings and password persistence passed'
+echo 'image smoke: readiness, native masking, extension shutdown, settings and password persistence passed'
