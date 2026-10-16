@@ -55,7 +55,7 @@ SILENCER_NGINX_RELOAD_CMD=':' \
   "$ROOT/scripts/silencer-blue-green.sh" cutover green
 [[ "$(cat "$active_file")" == 'green' ]] || { echo 'successful cutover did not update active state' >&2; exit 1; }
 [[ "$(cat "${active_file}.previous")" == 'blue' ]] || { echo 'successful cutover did not retain previous state' >&2; exit 1; }
-rg -q 'server 127\.0\.0\.1:18081;' "$upstream_file" || { echo 'successful cutover did not write upstream' >&2; exit 1; }
+grep -q 'server 127\.0\.0\.1:18081;' "$upstream_file" || { echo 'successful cutover did not write upstream' >&2; exit 1; }
 
 # A syntax-check failure must restore both durable state files.
 set +e
@@ -72,7 +72,7 @@ syntax_status=$?
 set -e
 [[ "$syntax_status" -ne 0 ]] || { echo 'syntax failure unexpectedly succeeded' >&2; exit 1; }
 [[ "$(cat "$active_file")" == 'green' ]] || { echo 'syntax failure changed active state' >&2; exit 1; }
-rg -q 'server 127\.0\.0\.1:18081;' "$upstream_file" || { echo 'syntax failure changed upstream state' >&2; exit 1; }
+grep -q 'server 127\.0\.0\.1:18081;' "$upstream_file" || { echo 'syntax failure changed upstream state' >&2; exit 1; }
 
 # A second state-changing process must not race the first one.
 lock_dir="${active_file}.lock"
