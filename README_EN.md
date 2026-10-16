@@ -1,6 +1,6 @@
 # Silencer 1.0.0
 
-[中文](README.md) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [Deployment](docs/TUTORIAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Benchmarks](docs/PERFORMANCE.md)
+[中文](README.md) · [Website](https://silencer.5970000.xyz/) · [Live demo](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [Deployment](docs/TUTORIAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Benchmarks](docs/PERFORMANCE.md)
 
 Silencer is a privacy gateway for AI clients. It replaces sensitive request text with placeholders before forwarding and restores ordinary replies and tool-call arguments on the way back. It runs a Go gateway, a C++ masking engine and a React console.
 
@@ -15,6 +15,8 @@ Silencer is a privacy gateway for AI clients. It replaces sensitive request text
 - SQLite or MySQL storage, configurable log retention, Prometheus and optional OpenTelemetry.
 
 **The browser extension is deferred.** Plugin source, extension-only pages and installation guides are excluded from this repository. Release images disable extension APIs and downloads.
+
+See [website/README.md](website/README.md) for the static website source and deployment of a separate demo instance. The public demo uses a shared account; use synthetic data only. Its Nginx configuration disables password changes.
 
 ## Quick start
 

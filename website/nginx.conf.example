@@ -1,0 +1,68 @@
+# Static website and a separate demo gateway. Configure HTTPS at the public
+# edge before exposing this site; this HTTP listener can sit behind that edge.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name silencer.example.com;
+    root /var/www/silencer;
+    index index.html;
+
+    client_max_body_size 64m;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+
+    # The static deployment does not collect visit data.
+    location = /api/track {
+        return 204;
+    }
+
+    # Preserve the shared demo account password through either public prefix.
+    location = /api/auth/change-password {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 403 '{"ok":false,"error":"demo_password_change_disabled"}';
+    }
+
+    location = /demo/api/auth/change-password {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 403 '{"ok":false,"error":"demo_password_change_disabled"}';
+    }
+
+    location = /demo {
+        return 301 /demo/;
+    }
+
+    location ^~ /demo/ {
+        rewrite ^/demo/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:5803;
+    }
+
+    location ^~ /assets/ {
+        proxy_pass http://127.0.0.1:5803;
+    }
+
+    location = /favicon.svg {
+        proxy_pass http://127.0.0.1:5803;
+    }
+
+    location ^~ /api/ {
+        proxy_pass http://127.0.0.1:5803;
+    }
+
+    location ^~ /r/ {
+        proxy_pass http://127.0.0.1:5803;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

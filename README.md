@@ -1,6 +1,6 @@
 # Silencer 1.0.0
 
-[English](README_EN.md) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [部署教程](docs/TUTORIAL.md) · [架构](docs/ARCHITECTURE.md) · [性能测试](docs/PERFORMANCE.md)
+[English](README_EN.md) · [官网](https://silencer.5970000.xyz/) · [在线演示](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [部署教程](docs/TUTORIAL.md) · [架构](docs/ARCHITECTURE.md) · [性能测试](docs/PERFORMANCE.md)
 
 Silencer 是面向 AI 客户端的隐私脱敏网关。请求转发前，将敏感文本替换为占位符；响应返回时，还原普通回复和工具调用参数。运行时采用 Go 网关、C++ 脱敏引擎和 React 控制台。
 
@@ -15,6 +15,8 @@ Silencer 是面向 AI 客户端的隐私脱敏网关。请求转发前，将敏�
 - SQLite 或 MySQL 存储、日志保留设置、Prometheus 指标和可选 OpenTelemetry。
 
 **浏览器扩展暂不发布。** 插件源码、扩展专用页面和安装文档不包含在本仓库；正式镜像关闭扩展接口及下载。
+
+官网静态源码及独立演示实例的部署方式见 [website/README.md](website/README.md)。公共演示账号用于体验，请勿提交真实凭据或个人数据；演示站点在 Nginx 层禁用修改密码接口。
 
 ## 快速启动
 
