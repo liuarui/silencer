@@ -1,0 +1,3 @@
+# Include this file from the nginx http{} block. The blue-green script replaces
+# the generated upstream block atomically during cutover.
+include /etc/silencer/silencer-upstream.conf;

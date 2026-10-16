@@ -1,0 +1,51 @@
+groups:
+  - name: silencer-gateway
+    rules:
+      - alert: SilencerGatewayDown
+        expr: up{job="silencer"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Silencer gateway is unreachable
+          description: Prometheus cannot scrape the Silencer gateway.
+
+      - alert: SilencerProxyErrors
+        expr: rate(silencer_gateway_proxy_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Silencer proxy errors detected
+          description: The gateway has recorded upstream or proxy errors for five minutes.
+
+      - alert: SilencerHigh5xxRate
+        expr: |
+          sum(rate(silencer_gateway_response_status_total{code="5xx"}[5m]))
+            / clamp_min(sum(rate(silencer_gateway_response_status_total[5m])), 1) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Silencer 5xx response rate is high
+          description: More than five percent of gateway responses are 5xx.
+
+      - alert: SilencerStorageWriteError
+        expr: silencer_storage_last_write_error == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Silencer storage writer is failing
+          description: The storage writer has reported a persistent write error.
+
+      - alert: SilencerStorageQueueSaturated
+        expr: |
+          silencer_storage_queue_depth
+            / clamp_min(silencer_storage_queue_capacity, 1) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Silencer storage queue is saturated
+          description: More than eighty percent of the storage queue is occupied.

@@ -1,0 +1,108 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-silencer}
+      MYSQL_USER: ${MYSQL_USER:-silencer}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+    volumes:
+      - silencer_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  silencer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: silencer:latest
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${SILENCER_BIND_HOST:-127.0.0.1}:${SILENCER_GATEWAY_HOST_PORT:-8080}:8080"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SILENCER_GATEWAY_ADDR: 0.0.0.0:8080
+      SILENCER_CONTROL_CONFIG_FILE: /data/control.json
+      SILENCER_GATEWAY_TOKEN: ${SILENCER_GATEWAY_TOKEN:-}
+      SILENCER_UPSTREAM_URL: ${SILENCER_UPSTREAM_URL:-}
+      SILENCER_REQUIRE_UPSTREAM: ${SILENCER_REQUIRE_UPSTREAM:-}
+      SILENCER_ENGINE: cpp
+      SILENCER_STORAGE_MODE: mysql
+      SILENCER_MYSQL_DSN: ${SILENCER_MYSQL_DSN:-${MYSQL_USER:-silencer}:${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}@tcp(mysql:3306)/${MYSQL_DATABASE:-silencer}?parseTime=true}
+      SILENCER_MYSQL_POOL_SIZE: ${SILENCER_MYSQL_POOL_SIZE:-32}
+      SILENCER_MYSQL_MAX_IDLE_CONNS: ${SILENCER_MYSQL_MAX_IDLE_CONNS:-8}
+      SILENCER_MAX_CONCURRENCY: ${SILENCER_MAX_CONCURRENCY:-}
+      SILENCER_MAX_BODY_BYTES: ${SILENCER_MAX_BODY_BYTES:-67108864}
+      SILENCER_MAX_RESPONSE_BYTES: ${SILENCER_MAX_RESPONSE_BYTES:-}
+      SILENCER_STORE_RAW_BODY: ${SILENCER_STORE_RAW_BODY:-false}
+      SILENCER_HOST_AGENT_SOCKET: /run/silencer/host-agent.sock
+      SILENCER_HOST_AGENT_CONFIG_PATHS: ${SILENCER_HOST_AGENT_CONFIG_PATHS:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    volumes:
+      - silencer_data:/data
+      - silencer_host_agent_run:/run/silencer
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/readyz"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  host-agent:
+    image: silencer:latest
+    profiles: [host-agent]
+    restart: unless-stopped
+    entrypoint: ["/usr/local/bin/silencer-host-agent"]
+    healthcheck:
+      disable: true
+    user: "0:0"
+    environment:
+      SILENCER_HOST_AGENT_SOCKET: /run/silencer/host-agent.sock
+      SILENCER_HOST_AGENT_CONFIG_PATHS: ${SILENCER_HOST_AGENT_CONFIG_PATHS:-}
+      SILENCER_HOST_AGENT_STATE_FILE: /host-config/.silencer/host-agent-history.json
+      SILENCER_HOST_AGENT_SOCKET_MODE: "0660"
+      SILENCER_HOST_AGENT_SOCKET_DIR_MODE: "0750"
+      SILENCER_HOST_AGENT_GROUP_ID: "10001"
+    volumes:
+      - silencer_host_agent_run:/run/silencer
+      - ${SILENCER_HOST_CONFIG_DIR:-./host-config}:/host-config:rw
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: [observability]
+    restart: unless-stopped
+    depends_on:
+      silencer:
+        condition: service_healthy
+    ports:
+      - "${PROMETHEUS_BIND_HOST:-127.0.0.1}:${PROMETHEUS_HOST_PORT:-9090}:9090"
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.107.0
+    profiles: [observability]
+    restart: unless-stopped
+    ports:
+      - "${OTEL_BIND_HOST:-127.0.0.1}:${OTEL_HOST_PORT:-4318}:4318"
+    volumes:
+      - ./deploy/observability/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+
+volumes:
+  silencer_data:
+  silencer_mysql_data:
+  silencer_host_agent_run:
+  prometheus_data:

@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Light theme colors */
+  :root {
+    --background: 210 40% 97%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 224 76% 48%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 95%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 95%;
+    --muted-foreground: 215.4 16.3% 42%;
+    --accent: 210 40% 95%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 32% 90%;
+    --input: 214.3 32% 90%;
+    --ring: 224 76% 48%;
+    --radius: 0.75rem;
+    --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 4px 14px -2px rgb(15 23 42 / 0.05), inset 0 1px 0 0 rgb(255 255 255 / 0.8);
+    --shadow-card-hover: 0 3px 6px -1px rgb(15 23 42 / 0.08), 0 10px 24px -4px rgb(15 23 42 / 0.12), inset 0 1px 0 0 rgb(255 255 255 / 0.9), 0 0 0 1px hsl(224 76% 48% / 0.18);
+  }
+
+  /* Dark theme is selected through the data-theme attribute. */
+  /* Neutral charcoal surfaces with blue reserved for interactive accents. */
+  [data-theme='dark'] {
+    --background: 220 14% 6%;
+    --foreground: 210 20% 97%;
+    --card: 220 12% 9.5%;
+    --card-foreground: 210 20% 97%;
+    --popover: 220 12% 9.5%;
+    --popover-foreground: 210 20% 97%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 10% 15%;
+    --secondary-foreground: 210 20% 97%;
+    --muted: 220 10% 13.5%;
+    --muted-foreground: 215 12% 68%;
+    --accent: 220 10% 15%;
+    --accent-foreground: 210 20% 97%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 20% 97%;
+    --border: 220 9% 19%;
+    --input: 220 9% 19%;
+    --ring: 217.2 91.2% 59.8%;
+    --radius: 0.75rem;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px -8px rgb(0 0 0 / 0.6), inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+    --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.6), 0 16px 36px -8px rgb(0 0 0 / 0.7), inset 0 1px 0 0 rgb(255 255 255 / 0.08), 0 0 0 1px hsl(217 91% 60% / 0.2);
+  }
+}
+
+@layer base {
+  /* 打包字体：Inter（拉丁/数字）+ JetBrains Mono（等宽），离线可用，改善观感 */
+  @font-face {
+    font-family: 'Inter';
+    src: url('./assets/fonts/inter-var.woff2') format('woff2-variations');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'JBMono';
+    src: url('./assets/fonts/jetbrains-mono-regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  * {
+    @apply border-border;
+  }
+  /* <details><summary> 的默认展开三角：Tailwind 的 list-none 只清掉 list-style-type，
+     WebKit 浏览器下三角由 ::-webkit-details-marker 控制，这里补一刀，
+     保证跨平台折叠区的外观一致（设置页「高级选项」依赖此行为）。 */
+  details > summary {
+    list-style: none;
+  }
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Inter 负责拉丁/数字（更现代），中文回落系统雅黑（渲染清晰） */
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+      'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'cv11' 1, 'ss01' 1;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  /* 字体层级：标题更鲜明，描述不致过淡 */
+  h1 { font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-weight: 600; }
+  h3 { font-weight: 600; }
+  /* svg 兜底：任何漏了尺寸的图标不会被 viewBox 撑成巨图 */
+  svg { width: 16px; height: 16px; flex: none; }
+  /* 等宽元素统一用 JBMono（端口/路径/时间/代码） */
+  code, kbd, samp, pre {
+    font-family: 'JBMono', 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+    font-feature-settings: 'zero' 1, 'ss01' 1;
+  }
+  /* 数字等宽（统计卡 / 端口 / 耗时 / 时间列不跳动） */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  code,
+  pre,
+  kbd {
+    font-family: 'JBMono', 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+  }
+}
+
+/* 全局细滚动条美化（标准 W3C 属性 + WebKit 伪元素，双轨兼容现代与传统浏览器） */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.25);
+  border-radius: 9999px;
+  transition: background-color 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+
+/* toast 入场动画 */
+@keyframes toast-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* 下载进度条的不确定态：总大小还没从 Content-Length 拿到时用它。
+   不能退化成一个静态宽度，以免用户误解为已完成的进度。 */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+/* 页面微入场动效（克制 150ms 淡入微升，消除硬切感） */
+.animate-page-enter {
+  animation: page-enter 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0.88;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 自定义背景图模式：侧边栏与主内容区域卡片共享半透明与毛玻璃磨砂质感，文字保持清晰 */
+.has-custom-bg aside,
+.has-custom-bg main .bg-card,
+.has-custom-bg main [data-card] {
+  background-color: hsl(var(--card) / var(--card-opacity, 0.45));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* 顶栏磨砂与透明度联动：对齐整体视觉通透感 */
+.has-custom-bg header {
+  background-color: hsl(var(--background) / max(var(--card-opacity, 0.8), 0.72));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* 浮层与下拉菜单微磨砂：在半透明卡片之上展现优雅层级 */
+.has-custom-bg [data-radix-popper-content-wrapper] [role="listbox"],
+.has-custom-bg .bg-popover {
+  background-color: hsl(var(--popover) / 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* 粘性表头（如 Logs 页）防穿透：提高表头不透明度，防止滚动内容在表头底层产生重影干扰 */
+.has-custom-bg main .sticky.bg-card,
+.has-custom-bg main .sticky > .bg-card,
+.has-custom-bg main [data-card] .sticky {
+  background-color: hsl(var(--card) / max(var(--card-opacity, 0.8), 0.94));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* 浅色模式质感增强：增加内高光与边框对比度，防止在亮色壁纸上边缘失真 */
+:root:not([data-theme='dark']) .has-custom-bg aside,
+:root:not([data-theme='dark']) .has-custom-bg header,
+:root:not([data-theme='dark']) .has-custom-bg main .bg-card,
+:root:not([data-theme='dark']) .has-custom-bg main [data-card] {
+  border-color: hsl(var(--border) / 0.85);
+}
+
+:root:not([data-theme='dark']) .has-custom-bg main .bg-card,
+:root:not([data-theme='dark']) .has-custom-bg main [data-card] {
+  box-shadow: 0 4px 16px -2px rgb(15 23 42 / 0.08), inset 0 1px 0 0 rgb(255 255 255 / 0.9);
+}
+
+/* 深色模式质感增强：微调边框微光与阴影深度 */
+[data-theme='dark'] .has-custom-bg aside,
+[data-theme='dark'] .has-custom-bg header,
+[data-theme='dark'] .has-custom-bg main .bg-card,
+[data-theme='dark'] .has-custom-bg main [data-card] {
+  border-color: hsl(var(--border) / 0.65);
+}
+
+[data-theme='dark'] .has-custom-bg main .bg-card,
+[data-theme='dark'] .has-custom-bg main [data-card] {
+  box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.5), inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+}

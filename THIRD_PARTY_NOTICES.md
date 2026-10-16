@@ -29,23 +29,23 @@ Direct development dependencies are `@types/node`, `@types/react`,
 remain under their respective upstream licenses; the lockfile also records
 license metadata for transitive packages.
 
-## Python packages
+## Gateway packages
 
-The backend declares runtime dependencies in
-[backend/pyproject.toml](backend/pyproject.toml); [requirements.txt](requirements.txt)
-installs that package. NER support is an optional `ner` extra, not a required
-runtime dependency. These packages are installed as separate distributions and
-retain their upstream licenses:
+The rewritten runtime declares Go dependencies in
+[gateway/go.mod](gateway/go.mod). They are linked into the gateway and retain
+their upstream licenses:
 
 | Package | License |
 | --- | --- |
-| Flask | BSD-3-Clause |
-| mitmproxy | MIT |
-| PyMySQL | MIT |
-| onnxruntime (optional `ner` extra) | MIT |
-| tokenizers (optional `ner` extra) | Apache-2.0 |
+| github.com/mattn/go-sqlite3 | MIT |
+| github.com/go-sql-driver/mysql | MPL-2.0 |
+| mvdan.cc/sh/v3 | BSD-3-Clause; [copyright and license](licenses/MVDAN-SH-BSD-3-CLAUSE.txt) |
+| go.opentelemetry.io/otel, otel/trace, otel/sdk, otel/exporters/otlp/otlptrace/otlptracehttp | Apache-2.0; [license](licenses/OPENTELEMETRY-APACHE-2.0.txt) |
 
-This table covers direct backend dependencies, not every transitive package.
-Each dependency remains under its own license and notice; consult the package
-distribution metadata and upstream project for complete copyright and license
-terms when redistributing dependency bundles.
+The C++ engine uses the C++17 standard library and PCRE2 (BSD-3-Clause), linked
+as the distribution's `libpcre2-8` shared library. Its copyright and license are
+installed by the OS package under `/usr/share/doc/libpcre2-8-0/copyright` in the
+container. Pattern syntax validation also uses the C++ standard library.
+This table covers direct runtime dependencies, not every
+transitive package. Consult module and distribution metadata for complete
+copyright and license terms when redistributing dependency bundles.
