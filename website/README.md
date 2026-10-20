@@ -1,6 +1,6 @@
 # 官网与演示环境
 
-[官网](https://silencer.5970000.xyz/)和[在线演示](https://silencer.5970000.xyz/demo/)使用两个独立的服务。`public/` 是官网的 HTML、CSS 和 JavaScript；`/demo/` 转发到 Go + C++ 网关自带的控制台。官网支持中英文及明暗主题。
+[官网](https://silencer.5970000.xyz/)和[在线演示](https://silencer.5970000.xyz/demo/)使用两个独立的服务。`public/` 是官网的 HTML、CSS 和 JavaScript；`/demo/` 转发到 Go + C++ 网关自带的控制台。官网支持中英文及明暗主题，并展示 1.1 捕获模式、三端安装包、兼容边界与更新日志。下载链接固定到对应 Release；升级官网时同步版本、下载链接、文案与 CSS/JS 缓存版本。
 
 ## 本地预览官网
 
@@ -14,7 +14,7 @@ python3 -m http.server 8081 --bind 127.0.0.1 --directory website/public
 
 ## 启动独立演示实例
 
-演示使用单独的数据卷和管理密码，不挂载生产数据、客户端配置或宿主机代理。以下命令从源码构建，适用于 AMD64、ARM64 原生构建环境。也可以直接使用 Docker Hub 的 `liuarui/silencer:1.0.0`，该标签会自动选择 AMD64 或 ARM64。
+演示使用单独的数据卷和管理密码，不挂载生产数据、客户端配置或宿主机代理。以下命令从源码构建，适用于 AMD64、ARM64 原生构建环境。也可以直接使用 Docker Hub 的 `liuarui/silencer:1.1.0`，该标签会自动选择 AMD64 或 ARM64。
 
 在仓库根目录运行：
 

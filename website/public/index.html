@@ -3,17 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Silencer：面向 AI 工作流的隐私网关。" />
+    <meta name="description" content="Silencer 1.1：Windows、macOS、Linux 本机捕获，默认本地处理，支持脱敏与流式还原。" />
     <meta name="theme-color" content="#f5f8f6" />
-    <title>Silencer · AI 隐私网关</title>
-    <link rel="stylesheet" href="/styles.css?v=1.0.1" />
+    <title>Silencer 1.1 · AI 隐私网关</title>
+    <link rel="stylesheet" href="/styles.css?v=1.1.0" />
   </head>
   <body>
     <header class="nav shell">
       <a class="brand" href="/" aria-label="Silencer home"><span class="mark">S</span><span>Silencer</span></a>
       <nav>
         <a href="#features" data-i18n="nav.features">能力</a>
-        <a href="#flow" data-i18n="nav.flow">工作方式</a>
+        <a href="#capture" data-i18n="nav.capture">捕获模式</a>
+        <a href="#download" data-i18n="nav.download">下载</a>
+        <a href="#updates" data-i18n="nav.updates">更新日志</a>
         <a href="https://github.com/liuarui/silencer" target="_blank" rel="noopener">GitHub</a>
         <a class="button button-small" href="#demo" data-i18n="nav.demo">打开演示</a>
         <button class="icon-button" id="themeToggle" type="button" aria-label="Toggle theme" title="Toggle theme">☾</button>
@@ -23,25 +25,48 @@
     <main>
       <section class="hero shell">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="hero.eyebrow">AI PRIVACY GATEWAY</p>
+          <p class="eyebrow" data-i18n="hero.eyebrow">SILENCER 1.1.0 · OPEN SOURCE</p>
           <h1 data-i18n="hero.title">让 AI 看见问题，<em>看不见隐私。</em></h1>
-          <p class="lede" data-i18n="hero.lede">Silencer 位于客户端与模型上游之间，在请求离开你的环境前保护敏感信息，并在回复回来时恢复上下文。</p>
-          <div class="actions"><a class="button" href="#demo" data-i18n="hero.cta">进入公共演示 <span>→</span></a><a class="text-link" href="#flow" data-i18n="hero.more">了解工作方式 ↓</a></div>
-          <div class="trust"><span class="dot"></span><span data-i18n="hero.trust">本地部署 · 可接多个上游 · 可审计</span></div>
+          <p class="lede" data-i18n="hero.lede">在请求发往模型前替换敏感信息，回复回来时还原上下文。1.1 新增三端捕获模式，从网页完成安装与检查，客户端沿用原地址和 Key。</p>
+          <div class="actions"><a class="button" href="#capture" data-i18n="hero.cta">了解捕获模式 <span>→</span></a><a class="text-link" href="#demo" data-i18n="hero.more">体验控制台 ↓</a></div>
+          <div class="trust"><span class="dot"></span><span data-i18n="hero.trust">默认本地处理 · 三端捕获 · 反向代理</span></div>
         </div>
-        <div class="hero-card" aria-label="Silencer gateway status">
-          <div class="card-top"><span>LIVE GATEWAY</span><span class="status">● PROTECTED</span></div>
+        <div class="hero-card" aria-label="Silencer processing example">
+          <div class="card-top"><span data-i18n="card.example">处理链路示意</span><span class="status" data-i18n="card.state">脱敏 → 还原</span></div>
           <div class="flow-row"><div><small>CLIENT</small><strong>Hermes / Codex</strong></div><span class="arrow">→</span><div><small>SILENCER</small><strong>Go + C++</strong></div><span class="arrow">→</span><div><small>UPSTREAM</small><strong>Sub2API / LLM</strong></div></div>
-          <div class="metric"><span data-i18n="card.sensitive">敏感信息</span><b data-i18n="card.protected">已保护</b><i>100%</i></div>
+          <div class="metric"><span data-i18n="card.sensitive">敏感信息</span><b data-i18n="card.protected">按规则替换</b><i data-i18n="card.scope">目标范围</i></div>
           <div class="metric"><span data-i18n="card.context">上下文稳定性</span><b data-i18n="card.reuse">占位符复用</b><i data-i18n="card.stable">稳定</i></div>
-          <div class="card-foot" data-i18n="card.foot">请求只在受控链路中流转 <span>⌁</span></div>
+          <div class="card-foot" data-i18n="card.foot">实际覆盖情况以请求账本核验为准 <span>⌁</span></div>
         </div>
       </section>
       <section id="features" class="section shell"><p class="eyebrow" data-i18n="features.eyebrow">ONE CLEAR LAYER</p><h2 data-i18n="features.title">一个清晰的保护层</h2><div class="grid three"><article><span class="icon">◈</span><h3 data-i18n="features.mask.title">请求脱敏</h3><p data-i18n="features.mask.body">在内容发送给上游前识别凭据、个人信息和自定义规则。</p></article><article><span class="icon">↔</span><h3 data-i18n="features.route.title">多上游路由</h3><p data-i18n="features.route.body">把不同客户端统一接入，按规则转发到多个模型服务。</p></article><article><span class="icon">▤</span><h3 data-i18n="features.logs.title">可追溯日志</h3><p data-i18n="features.logs.body">查看请求路径、脱敏结果和还原状态，排查问题更直接。</p></article></div></section>
-      <section id="flow" class="section flow-section"><div class="shell split"><div><p class="eyebrow" data-i18n="flow.eyebrow">HOW IT WORKS</p><h2 data-i18n="flow.title">客户端不需要改变习惯</h2><p data-i18n="flow.body">把 Base URL 指向 Silencer，网关负责接收、保护、转发和还原。配置集中在控制台，数据目录可持久化到本地卷或数据库。</p><a class="text-link" href="#features" data-i18n="flow.more">了解核心能力 →</a></div><ol class="steps"><li><b>01</b><span><strong data-i18n="steps.connect.title">接入</strong><small data-i18n="steps.connect.body">客户端使用统一 Base URL</small></span></li><li><b>02</b><span><strong data-i18n="steps.mask.title">保护</strong><small data-i18n="steps.mask.body">敏感内容转换为稳定占位符</small></span></li><li><b>03</b><span><strong data-i18n="steps.route.title">转发</strong><small data-i18n="steps.route.body">请求送往选定的模型上游</small></span></li><li><b>04</b><span><strong data-i18n="steps.restore.title">还原</strong><small data-i18n="steps.restore.body">回复回到客户端时恢复上下文</small></span></li></ol></div></section>
-      <section id="demo" class="demo-section shell"><div class="demo-card"><div><p class="eyebrow" data-i18n="demo.eyebrow">PUBLIC DEMO</p><h2 data-i18n="demo.title">现在就操作演示</h2><p data-i18n="demo.body">演示运行在独立的 Go + C++ 实例中，可体验控制台、规则、统计和脱敏测试。使用共享账号，修改密码不可用；请勿输入真实密钥或个人信息。</p></div><div class="demo-access"><div><span data-i18n="demo.account">账号</span><code>demo</code></div><div><span data-i18n="demo.password">密码</span><code>SET_YOUR_DEMO_PASSWORD</code></div><a class="button" href="/demo/" data-i18n="demo.cta">打开演示控制台 →</a></div></div></section>
+      <section id="flow" class="section flow-section"><div class="shell split"><div><p class="eyebrow" data-i18n="flow.eyebrow">HOW IT WORKS</p><h2 data-i18n="flow.title">客户端不需要改变习惯</h2><p data-i18n="flow.body">捕获模式在本机接管已启用的 AI API 目标，客户端保留原地址与 Key。反向代理模式通过 Silencer Base URL 接入。两种入口共用脱敏、转发、流式还原和工具防护。</p><a class="text-link" href="#features" data-i18n="flow.more">了解核心能力 →</a></div><ol class="steps"><li><b>01</b><span><strong data-i18n="steps.connect.title">接入</strong><small data-i18n="steps.connect.body">选择本机捕获或反向代理入口</small></span></li><li><b>02</b><span><strong data-i18n="steps.mask.title">保护</strong><small data-i18n="steps.mask.body">敏感内容转换为稳定占位符</small></span></li><li><b>03</b><span><strong data-i18n="steps.route.title">转发</strong><small data-i18n="steps.route.body">请求送往选定的模型上游</small></span></li><li><b>04</b><span><strong data-i18n="steps.restore.title">还原</strong><small data-i18n="steps.restore.body">回复回到客户端时恢复上下文</small></span></li></ol></div></section>
+      <section id="capture" class="section shell">
+        <p class="eyebrow" data-i18n="capture.eyebrow">NEW IN 1.1</p>
+        <h2 data-i18n="capture.title">从网页开启本机捕获</h2>
+        <p class="section-intro" data-i18n="capture.body">在控制台点击“捕获模式”，按系统提示安装本机组件，逐步检查权限、证书与处理链路。默认本地处理，也可验证后切换远程处理端。</p>
+        <div class="actions section-actions"><a class="button" href="/demo/#/capture" data-i18n="capture.guide">打开网页安装向导 →</a><a class="text-link" href="https://github.com/liuarui/silencer/blob/v1.1.0/docs/CAPTURE.md" data-i18n="capture.docs">阅读捕获说明 →</a></div>
+        <div class="grid three">
+          <article><span class="icon">◎</span><h3 data-i18n="capture.install.title">可视化安装与检查</h3><p data-i18n="capture.install.body">按真实检查结果前进，提供修复、更新与卸载引导。</p></article>
+          <article><span class="icon">↔</span><h3 data-i18n="capture.processing.title">本地或远程处理</h3><p data-i18n="capture.processing.body">捕获始终在本机，规则、日志和还原映射归属所选处理端。</p></article>
+          <article><span class="icon">✓</span><h3 data-i18n="capture.verify.title">用真实请求核验</h3><p data-i18n="capture.verify.body">服务运行不代表客户端已被覆盖，需在账本核对脱敏与还原。</p></article>
+        </div>
+      </section>
+      <section id="download" class="section shell">
+        <p class="eyebrow" data-i18n="download.eyebrow">DOWNLOAD 1.1.0</p><h2 data-i18n="download.title">选择你的系统</h2>
+        <p class="section-intro" data-i18n="download.body">优先使用网页向导完成安装。下面提供完整原生包和校验文件；服务器可使用双架构 Docker 镜像。</p>
+        <div class="grid three download-grid">
+          <article><h3>Windows</h3><p data-i18n="download.windows">Windows 10 / 11 · x64</p><a class="text-link" href="https://github.com/liuarui/silencer/releases/download/v1.1.0/silencer-local-windows-amd64.zip" data-i18n="download.bundle">下载 Windows 包 →</a></article>
+          <article><h3>macOS</h3><p data-i18n="download.mac">macOS 14 及以上</p><a class="text-link" href="https://github.com/liuarui/silencer/releases/download/v1.1.0/silencer-local-darwin-arm64.tar.gz" data-i18n="download.apple">Apple Silicon 下载 →</a><a class="text-link" href="https://github.com/liuarui/silencer/releases/download/v1.1.0/silencer-local-darwin-amd64.tar.gz" data-i18n="download.intel">Intel 下载 →</a></article>
+          <article><h3>Linux</h3><p data-i18n="download.linux">Ubuntu 24.04 · x64 · 内核 6.8+</p><a class="text-link" href="https://github.com/liuarui/silencer/releases/download/v1.1.0/silencer-local-linux-amd64.tar.gz" data-i18n="download.linuxBundle">下载 Linux 包 →</a></article>
+        </div>
+        <div class="download-meta"><code>docker pull liuarui/silencer:1.1.0</code><a class="text-link" href="https://github.com/liuarui/silencer/releases/tag/v1.1.0" data-i18n="download.checksums">校验文件与安装脚本 →</a></div>
+        <p class="compatibility-note" data-i18n="download.boundary">系统授权与证书信任需要在本机完成。Windows/Linux 的系统权限和代理共存仍需实机验收；macOS 不捕获回环流量。</p>
+      </section>
+      <section id="updates" class="section shell updates-section"><p class="eyebrow" data-i18n="updates.eyebrow">RELEASE NOTES</p><h2 data-i18n="updates.title">1.1.0 更新记录</h2><p class="section-intro" data-i18n="updates.body">三端捕获、可视化安装与卸载、本地/远程处理端切换，以及原生包和双架构镜像发布流水线。</p><div class="actions"><a class="text-link" href="https://github.com/liuarui/silencer/releases/tag/v1.1.0" data-i18n="updates.release">查看 1.1.0 发布说明 →</a><a class="text-link" href="https://github.com/liuarui/silencer/blob/main/CHANGELOG.md" data-i18n="updates.changelog">完整 Changelog →</a></div></section>
+      <section id="demo" class="demo-section shell"><div class="demo-card"><div><p class="eyebrow" data-i18n="demo.eyebrow">PUBLIC DEMO</p><h2 data-i18n="demo.title">现在就操作演示</h2><p data-i18n="demo.body">演示运行在独立的 Go + C++ 实例中，可体验控制台、规则、统计和脱敏测试。捕获模式需要在你自己的电脑上安装组件并授权。演示使用共享账号，修改密码不可用；请勿输入真实密钥或个人信息。</p></div><div class="demo-access"><div><span data-i18n="demo.account">账号</span><code>demo</code></div><div><span data-i18n="demo.password">密码</span><code>SET_YOUR_DEMO_PASSWORD</code></div><a class="button" href="/demo/" data-i18n="demo.cta">打开演示控制台 →</a></div></div></section>
     </main>
     <footer class="shell footer"><span>© Silencer</span><span data-i18n="footer.tag">AI 工作流的隐私基础设施</span><span>· <a href="https://github.com/liuarui/silencer" target="_blank" rel="noopener">GitHub</a></span></footer>
-    <script src="/site.js?v=1.0.1" defer></script>
+    <script src="/site.js?v=1.1.0" defer></script>
   </body>
 </html>
