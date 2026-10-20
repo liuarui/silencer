@@ -66,6 +66,7 @@ sudo systemctl reload nginx
 | `/`、`/styles.css`、`/site.js` | Nginx 提供官网静态文件 |
 | `/demo/` | 去掉前缀后转发到独立演示控制台 |
 | `/assets/`、`/favicon.svg` | 演示控制台使用的根路径资源 |
+| `/capture-assets/` | 捕获向导的安装脚本下载，转发到演示网关 |
 | `/api/` | 演示控制 API 及默认模型代理入口 |
 | `/r/` | 演示的命名上游代理入口 |
 | `/api/track` | 兼容页面的访问上报请求，直接返回 204；示例不收集访问数据 |
@@ -83,4 +84,4 @@ sudo systemctl reload nginx
 
 官网更新时，只替换 `/var/www/silencer/` 中的三个静态文件。网关更新时，先在独立测试卷验证新镜像，再使用原有数据卷、账号、密码及环境设置替换演示容器。不要为现有实例重新生成密码，也不要删除其数据卷。
 
-升级后检查 `http://127.0.0.1:5803/readyz`（或经反代访问 `/demo/readyz`）、`/demo/` 的页面资源、原账号登录和脱敏测试；确认两个改密入口继续返回 403。Nginx 配置变动必须先通过 `nginx -t` 再 reload。
+升级后检查 `http://127.0.0.1:5803/readyz`（或经反代访问 `/demo/readyz`）、`/demo/` 的页面资源、原账号登录和脱敏测试；确认两个改密入口继续返回 403。Nginx 配置变动必须先通过 `nginx -t` 再 reload。升级到 1.1 时补齐 `/capture-assets/` 转发，并验证 `/demo/#/capture` 的向导与 `/capture-assets/install.sh`、`/capture-assets/install.ps1` 下载；已有站点应合并这一条路由，保留原有采集器、限流与访问来源配置。
