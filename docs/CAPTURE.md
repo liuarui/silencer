@@ -65,7 +65,7 @@ python3 scripts/build-local-release.py --runtime /path/to/new-capture-runtime --
 
 输出对应平台的原生包、`manifest.json` 和 `SHA256SUMS`。将这些公开文件放在 HTTPS 发布地址，并在提供安装引导的网关设置：
 
-正式发布前需遵循 [发布流程](PUBLISHING.md) 完成审核和导出，并从已审核的公开源码构建。本机开发测试包不直接公开发布。
+正式发布前遵循 [发布流程](PUBLISHING.md)，在本仓库审核、验证并提交公开源码，由 GitHub Actions 构建和发布安装包。默认下载地址为 `https://github.com/liuarui/silencer/releases/latest/download`；下面的环境变量仅用于覆盖下载地址。
 
 ```text
 SILENCER_CAPTURE_RELEASE_BASE=https://downloads.example.com/silencer
@@ -165,7 +165,9 @@ Windows 额外执行 `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy
 
 新增原生 CI 针对 Windows、macOS 和 Linux 构建并执行捕获测试，包含 Windows PowerShell 5.1/7 脚本测试与原生 ACL 测试，以及 Linux 锁定运行时构建、完整分发打包和解包验证。CI 通过仍不能代替系统权限、签名、安装升级卸载和 Clash/TUN 的实机验收。未通过的平台或连接组合不能标为正式支持。
 
-### 当前实现的验证记录
+### 发布前的历史验证记录
+
+以下为逐阶段开发记录；实际发布以对应版本的 GitHub Actions 与发行说明为准。
 
 在 macOS 开发环境中已通过 Go 全量测试、原生 C++ 引擎及 Go 测试、捕获并发检测、20 项捕获 Go 测试、15 项适配器协议测试、前端构建、处理端隔离测试和现有日志测试。真实 mitmdump 测试验证临时 CA 下的 TLS 转交；远程流测试验证切换后旧流继续使用原处理端、新请求使用新处理端。网页实测了本地默认值、安装资源提示、权限门禁与刷新恢复。
 

@@ -3,8 +3,8 @@ package gateway
 import (
 	"context"
 	"errors"
+	"github.com/silencer/gateway/internal/platformfs"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 )
@@ -106,7 +106,7 @@ func TestRetentionSkipsBusyCaptureRoot(t *testing.T) {
 	}()
 	select {
 	case err := <-result:
-		if !errors.Is(err, syscall.EWOULDBLOCK) {
+		if !platformfs.IsBusy(err) {
 			t.Fatalf("busy root: %v", err)
 		}
 	case <-time.After(time.Second):

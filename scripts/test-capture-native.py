@@ -28,4 +28,4 @@ with tempfile.TemporaryDirectory(prefix='silencer-native-check-') as directory:
     env['LD_LIBRARY_PATH'] = str(build)
     env['DYLD_LIBRARY_PATH'] = str(build)
     subprocess.run(['go', 'build', '-tags', 'silencer_engine', '-o', str(build/('silencer-gateway.exe' if system == 'Windows' else 'silencer-gateway')), './cmd/gateway'], cwd=root/'gateway', env=env, check=True)
-    subprocess.run(['go', 'test', '-tags', 'silencer_engine', './internal/gateway', '-run', 'Capture', '-count=1'], cwd=root/'gateway', env=env, check=True)
+    subprocess.run(['go', 'test', '-tags', 'silencer_engine', './...', '-count=1'], cwd=root/'gateway', env=env, check=True)
