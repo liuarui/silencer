@@ -190,7 +190,8 @@ def main():
         if system == 'darwin':
             env['MACOSX_DEPLOYMENT_TARGET'] = '14.0'
             env['CGO_CFLAGS'] = env.get('CGO_CFLAGS', '')+' -mmacosx-version-min=14.0'
-        env['CGO_LDFLAGS'] = '-L'+shlex.quote(str(lib))
+        # Quote the whole cgo argument; Windows backslashes are not POSIX shell text.
+        env['CGO_LDFLAGS'] = json.dumps('-L'+lib.as_posix(), ensure_ascii=False)
         if system != 'windows':
             env['CGO_LDFLAGS'] += ' -Wl,-rpath,' + ('@executable_path/lib' if system == 'darwin' else '$ORIGIN/lib')
         if system == 'darwin': env['CGO_LDFLAGS'] += ' -mmacosx-version-min=14.0'
