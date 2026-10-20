@@ -91,3 +91,7 @@ bash scripts/test-image.sh silencer:test
 ```
 
 See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.0.0.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
+
+## Sponsors
+
+Sponsored by [ForZTN](https://sponsorship.forztn.com/github.com/liuarui/silencer).
