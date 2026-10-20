@@ -16,7 +16,7 @@ def main():
     def contents(path):
         if args.staged:
             return subprocess.check_output(['git', 'show', ':'+path], cwd=ROOT).decode()
-        return (ROOT/path).read_text()
+        return (ROOT/path).read_text(encoding="utf-8")
     paths = [line for line in contents('scripts/public-release-files.txt').splitlines() if line and not line.startswith('#')]
     if len(paths) != len(set(paths)):
         raise SystemExit('Duplicate reviewed public path')
