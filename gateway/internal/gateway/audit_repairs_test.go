@@ -232,10 +232,17 @@ func TestConfigFileCommitRecoversFirstRenameOnFailure(t *testing.T) {
 
 func TestConfigPathAliasesAndInvalidRestoreLeaveDiskUnchanged(t *testing.T) {
 	s, _ := extensionLedgerServer(t, testEngine{})
-	dir := t.TempDir()
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := os.MkdirTemp(workingDir, ".config-alias-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	path := filepath.Join(dir, "runtime.json")
 	os.WriteFile(path, []byte(`{"original":true}`), 0600)
-	workingDir, _ := os.Getwd()
 	relative, err := filepath.Rel(workingDir, path)
 	if err != nil {
 		t.Fatal(err)

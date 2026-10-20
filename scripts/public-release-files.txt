@@ -296,3 +296,5 @@ scripts/prepare-native-capture.py
 scripts/assemble-release.py
 scripts/check-image-index.py
 scripts/test-release-pipeline.py
+gateway/internal/gateway/config_permissions_unix_test.go
+gateway/internal/gateway/config_permissions_windows_test.go

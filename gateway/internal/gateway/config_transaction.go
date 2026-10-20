@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/silencer/gateway/internal/platformfs"
 	"math"
 	"net/url"
 	"os"
@@ -88,7 +89,10 @@ func prepareConfigFile(path string, value any) (*preparedConfigFile, error) {
 		return nil, err
 	}
 	p.temp = f.Name()
-	if _, err = f.Write(data); err == nil {
+	if err = platformfs.SetPrivatePermissions(f.Name()); err == nil {
+		_, err = f.Write(data)
+	}
+	if err == nil {
 		err = f.Sync()
 	}
 	if e := f.Close(); err == nil {

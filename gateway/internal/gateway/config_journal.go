@@ -70,7 +70,10 @@ func writeConfigBytesUsing(path string, data []byte, ops configDiskOps) error {
 	}
 	temp := f.Name()
 	defer os.Remove(temp)
-	if _, err = f.Write(data); err == nil {
+	if err = platformfs.SetPrivatePermissions(f.Name()); err == nil {
+		_, err = f.Write(data)
+	}
+	if err == nil {
 		err = f.Sync()
 	}
 	if closeErr := f.Close(); err == nil {

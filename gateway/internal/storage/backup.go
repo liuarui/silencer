@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/silencer/gateway/internal/platformfs"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -23,6 +25,10 @@ func RestoreSQLite(ctx context.Context, backupPath, destinationPath string, forc
 	return copySQLiteFile(ctx, backupPath, destinationPath, force)
 }
 func sqliteFileDSN(path, mode string) string {
+	path = filepath.ToSlash(path)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
 	u := url.URL{Scheme: "file", Path: path}
 	return u.String() + "?mode=" + mode + "&_busy_timeout=100"
 }
@@ -66,6 +72,11 @@ func copySQLiteFile(ctx context.Context, sourcePath, destinationPath string, ove
 		return err
 	}
 	tmpPath := tmp.Name()
+	if err = platformfs.SetPrivatePermissions(tmpPath); err != nil {
+		tmp.Close()
+		os.Remove(tmpPath)
+		return err
+	}
 	tmp.Close()
 	defer os.Remove(tmpPath)
 	if err = sqliteSnapshot(ctx, sourcePath, tmpPath); err != nil {
@@ -112,7 +123,7 @@ func copySQLiteFile(ctx context.Context, sourcePath, destinationPath string, ove
 		}
 	}
 	if overwrite {
-		return os.Rename(tmpPath, destinationPath)
+		return platformfs.Replace(tmpPath, destinationPath)
 	}
 	// Link is an atomic no-clobber install on the destination filesystem.
 	return os.Link(tmpPath, destinationPath)

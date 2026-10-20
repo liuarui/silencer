@@ -54,7 +54,10 @@ func newRequestCapture(root, id string, enabled bool) *bodyCapture {
 		return c
 	}
 	c.owned = true
-	c.lease, c.err = os.OpenFile(filepath.Join(c.dir, ".lease"), os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+	if c.err = platformfs.SetPrivatePermissions(c.dir); c.err != nil {
+		return c
+	}
+	c.lease, c.err = platformfs.OpenNoFollow(filepath.Join(c.dir, ".lease"), os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
 	if c.err != nil {
 		return c
 	}
@@ -140,7 +143,7 @@ func (s *Server) logRequestActive(id string) bool {
 	if !ledgerIDPattern.MatchString(id) {
 		return false
 	}
-	file, err := os.OpenFile(filepath.Join(s.logDirectory(), id, ".lease"), os.O_RDWR, 0600)
+	file, err := platformfs.OpenNoFollow(filepath.Join(s.logDirectory(), id, ".lease"), os.O_RDWR, 0600)
 	if os.IsNotExist(err) {
 		return false
 	}
@@ -382,10 +385,10 @@ func (s *Server) sweepOrphanBodies(ctx context.Context) {
 		return
 	}
 	entries, err := s.logOrphanDir.ReadDir(256)
-	if err != nil {
+	if err != nil || len(entries) < 256 {
 		s.logOrphanDir.Close()
 		s.logOrphanDir = nil
-		if err != io.EOF {
+		if err != nil && err != io.EOF {
 			return
 		}
 	}

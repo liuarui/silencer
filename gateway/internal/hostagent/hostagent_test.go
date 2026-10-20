@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -62,6 +63,11 @@ func TestPlanApplyRollbackAndExternalModification(t *testing.T) {
 	if err := os.WriteFile(path, []byte(original), 0640); err != nil {
 		t.Fatal(err)
 	}
+	originalInfo, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalMode := uint32(originalInfo.Mode().Perm())
 	s := &Server{ConfigPath: path, StatePath: filepath.Join(dir, "history.json")}
 
 	discover := s.process(Request{Op: "discover"})
@@ -97,7 +103,7 @@ func TestPlanApplyRollbackAndExternalModification(t *testing.T) {
 		t.Fatalf("apply=%+v", applyResponse)
 	}
 	change := responseChange(t, applyResponse)
-	if change.Status != "applied" || change.Backup == "" || change.Mode != 0640 {
+	if change.Status != "applied" || change.Backup == "" || change.Mode != originalMode {
 		t.Fatalf("change=%+v", change)
 	}
 	updated, err := os.ReadFile(path)
@@ -110,7 +116,7 @@ func TestPlanApplyRollbackAndExternalModification(t *testing.T) {
 	if !strings.Contains(string(updated), "9007199254740993") {
 		t.Fatalf("large integer changed in update: %s", updated)
 	}
-	if mode, err := os.Stat(path); err != nil || mode.Mode().Perm() != 0640 {
+	if mode, err := os.Stat(path); err != nil || uint32(mode.Mode().Perm()) != originalMode {
 		t.Fatalf("mode=%v err=%v", mode, err)
 	}
 	forgedRollback := change
@@ -148,7 +154,7 @@ func TestHostAgentUnixSocketAndSocketSafety(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"base_url":"https://api.example.com"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	socketDir, err := os.MkdirTemp("/tmp", "ha-")
+	socketDir, err := os.MkdirTemp("", "ha-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +175,7 @@ func TestHostAgentUnixSocketAndSocketSafety(t *testing.T) {
 	if err != nil || !resp.OK || !resp.Available {
 		t.Fatalf("discover over socket response=%+v err=%v", resp, err)
 	}
-	if mode, err := os.Stat(socket); err != nil || mode.Mode().Perm() != 0600 {
+	if mode, err := os.Stat(socket); err != nil || (runtime.GOOS != "windows" && mode.Mode().Perm() != 0600) {
 		t.Fatalf("socket mode=%v err=%v", mode, err)
 	}
 	cancel()

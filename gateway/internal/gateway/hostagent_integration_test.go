@@ -20,7 +20,7 @@ func TestHostAgentControlPlaneUsesReactContract(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"base_url":"https://api.example.com/v1"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	socketDir, err := os.MkdirTemp("/tmp", "gateway-ha-")
+	socketDir, err := os.MkdirTemp("", "gateway-ha-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestHostAgentControlPlaneUsesReactContract(t *testing.T) {
 		t.Fatalf("discover clients=%#v", discover["clients"])
 	}
 
-	planResponse := request(http.MethodPost, "/api/clients/plan", `{"config_path":"`+configPath+`","proxy_url":"http://127.0.0.1:8080/r/default/v1"}`)
+	planResponse := request(http.MethodPost, "/api/clients/plan", mustJSON(t, map[string]any{"config_path": configPath, "proxy_url": "http://127.0.0.1:8080/r/default/v1"}))
 	plan, ok := planResponse["plan"].(map[string]any)
 	if !ok || plan["status"] != "planned" || plan["id"] == "" {
 		t.Fatalf("plan=%#v", planResponse)

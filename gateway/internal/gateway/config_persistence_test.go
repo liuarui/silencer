@@ -3,7 +3,6 @@ package gateway
 import (
 	"context"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -44,10 +43,7 @@ func TestControlOnlyDeploymentPersistsRuntimeAndPassword(t *testing.T) {
 		t.Fatalf("settings lost on reload: concurrency=%d response=%d authChanged=%t err=%v", loaded.MaxConcurrency, loaded.MaxResponseBytes, loaded.AuthToken != cfg.AuthToken, err)
 	}
 	for _, path := range []string{control, runtimeConfigPath(), authPersistencePath()} {
-		info, err := os.Stat(path)
-		if err != nil || info.Mode().Perm() != 0600 {
-			t.Fatalf("private persistence missing: %s, %v", filepath.Base(path), err)
-		}
+		checkPrivateConfigPermissions(t, path)
 	}
 	// Operator environment overrides remain intentional and take precedence.
 	t.Setenv("SILENCER_MAX_CONCURRENCY", "9")

@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -208,6 +209,15 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 	parent, err := os.Lstat(parentPath)
 	if err != nil || parent.Mode()&os.ModeSymlink != 0 || !parent.IsDir() {
 		return errors.New("socket parent must be a real directory")
+	}
+	if runtime.GOOS == "windows" {
+		if s.SetSocketGroup || (s.SocketMode != 0 && s.SocketMode.Perm() != 0600) || (s.SocketDirMode != 0 && s.SocketDirMode.Perm() != 0700) {
+			return errors.New("Windows host agent requires private user socket permissions")
+		}
+		// Windows AF_UNIX enforces the ACL inherited from the socket directory.
+		if err := platformfs.SetPrivatePermissions(parentPath); err != nil {
+			return err
+		}
 	}
 	if s.SetSocketGroup {
 		if err := os.Chown(parentPath, -1, s.SocketGroup); err != nil {
@@ -730,7 +740,7 @@ func (s *Server) createBackup(path string, data []byte) (string, error) {
 	} else {
 		return "", err
 	}
-	if err := os.Chmod(dir, 0700); err != nil {
+	if err := platformfs.MkdirPrivate(dir); err != nil {
 		return "", err
 	}
 	name := fmt.Sprintf("%s-%d-%s.bak", filepath.Base(path), time.Now().UnixNano(), sha256Hex(data)[:12])

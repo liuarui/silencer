@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -120,5 +121,50 @@ func TestRestoreRefusesOrphanDestinationSidecars(t *testing.T) {
 	}
 	if _, err = os.Stat(target); !os.IsNotExist(err) {
 		t.Fatal("refused restore created destination")
+	}
+}
+
+func TestSQLiteBackupEscapedPathsAndReadOnlySource(t *testing.T) {
+	ctx := context.Background()
+	root := filepath.Join(t.TempDir(), "db space #%")
+	if err := os.Mkdir(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(root, "source #% .db")
+	db, err := OpenDatabase(ctx, DatabaseConfig{Mode: "sqlite", SQLitePath: source})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec("CREATE TABLE fixture(value TEXT); INSERT INTO fixture VALUES('kept')"); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	snapshot := filepath.Join(root, "backup #% .db")
+	if err = BackupSQLite(ctx, source, snapshot); err != nil {
+		t.Fatal(err)
+	}
+	restored := filepath.Join(root, "restored #% .db")
+	if err = RestoreSQLite(ctx, snapshot, restored, false); err != nil {
+		t.Fatal(err)
+	}
+	ro, err := sql.Open("sqlite3", sqliteFileDSN(restored, "ro"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ro.Close()
+	var value string
+	if err = ro.QueryRow("SELECT value FROM fixture").Scan(&value); err != nil || value != "kept" {
+		t.Fatal(value, err)
+	}
+	if _, err = ro.Exec("INSERT INTO fixture VALUES('forbidden')"); err == nil {
+		t.Fatal("read-only URI permitted writes")
+	}
+	rw, err := sql.Open("sqlite3", sqliteFileDSN(filepath.Join(root, "missing.db"), "rw"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rw.Close()
+	if err = rw.Ping(); err == nil {
+		t.Fatal("rw URI created missing database")
 	}
 }
