@@ -4,9 +4,10 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
+	"runtime"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/silencer/gateway/internal/platformfs"
 	"golang.org/x/sys/windows"
@@ -85,9 +86,36 @@ func TestWindowsSocketDirectoryAndBackupsArePrivate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		value := sd.String()
-		if strings.Count(value, "(A;") != 2 || !strings.Contains(value, ";;;SY)") || !strings.Contains(value, ";;;"+user.User.Sid.String()+")") {
-			t.Fatal("private host-agent files permit other users", value)
+
+		acl, _, err := sd.DACL()
+		if err != nil || acl == nil || acl.AceCount != 2 {
+			t.Fatal("expected two private access entries", err)
+		}
+		system, err := windows.StringToSid("S-1-5-18")
+		if err != nil {
+			t.Fatal(err)
+		}
+		seenUser, seenSystem := false, false
+		for i := uint32(0); i < uint32(acl.AceCount); i++ {
+			var ace *windows.ACCESS_ALLOWED_ACE
+			if err := windows.GetAce(acl, i, &ace); err != nil {
+				t.Fatal(err)
+			}
+			sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
+			if ace.Header.AceType != windows.ACCESS_ALLOWED_ACE_TYPE || !sid.IsValid() {
+				t.Fatal("unexpected private access entry")
+			}
+			if sid.Equals(user.User.Sid) {
+				seenUser = true
+			} else if sid.Equals(system) {
+				seenSystem = true
+			} else {
+				t.Fatal("host-agent files grant another identity access")
+			}
+		}
+		runtime.KeepAlive(sd)
+		if !seenUser || !seenSystem {
+			t.Fatal("private files must allow current user and SYSTEM")
 		}
 	}
 }
