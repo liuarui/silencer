@@ -18,6 +18,7 @@ import { toast } from '@/lib/toast'
 import { useI18n } from '@/lib/i18n'
 import { useVisibility } from '@/lib/useVisibility'
 import { cn } from '@/lib/utils'
+import { processingScope } from '@/lib/processing-target'
 
 /** A data-directory configuration backup summary with guarded one-click rollback. */
 export function ConfigBackupCard() {
@@ -62,6 +63,7 @@ export function ConfigBackupCard() {
       <CardHeader className="flex-row items-center justify-between space-y-0">
         <div>
           <CardTitle className="text-sm font-semibold">{t('settings.backup.title')}</CardTitle>
+          {processingScope() !== 'server' && <p className="mt-1 text-xs font-medium">{t('settings.backup.localScope')}</p>}
           <p className="text-[11px] text-muted-foreground">{t('settings.backup.desc')}</p>
           <p className="mt-1 text-xs text-muted-foreground">{t('settings.backup.desc2')}</p>
         </div>

@@ -20,6 +20,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/silencer/gateway/internal/platformfs"
 )
 
 const MaxMessage = 1 << 20
@@ -779,13 +781,9 @@ func atomicWrite(path string, data []byte, mode os.FileMode, owner os.FileInfo) 
 		_ = tmp.Close()
 		return err
 	}
-	if owner != nil {
-		if stat, ok := owner.Sys().(*syscall.Stat_t); ok {
-			if err := tmp.Chown(int(stat.Uid), int(stat.Gid)); err != nil {
-				_ = tmp.Close()
-				return err
-			}
-		}
+	if err := preserveOwner(tmp, path, owner); err != nil {
+		_ = tmp.Close()
+		return err
 	}
 	if _, err := tmp.Write(data); err != nil {
 		_ = tmp.Close()
@@ -798,15 +796,10 @@ func atomicWrite(path string, data []byte, mode os.FileMode, owner os.FileInfo) 
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpName, path); err != nil {
+	if err := platformfs.Replace(tmpName, path); err != nil {
 		return err
 	}
-	dir, err := os.Open(filepath.Dir(path))
-	if err != nil {
-		return err
-	}
-	defer dir.Close()
-	return dir.Sync()
+	return platformfs.SyncDirectory(path)
 }
 
 func (s *Server) historyPath() string {

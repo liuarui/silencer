@@ -1,7 +1,24 @@
 name: Verify
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_call:
+    inputs:
+      revision:
+        type: string
+        default: ''
+      publish_images:
+        type: boolean
+        default: false
+      version:
+        type: string
+        default: dev
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_TOKEN:
+        required: false
 permissions:
   contents: read
 jobs:
@@ -13,10 +30,12 @@ jobs:
         include:
           - runner: ubuntu-24.04
             platform: linux/amd64
+            arch: amd64
           - runner: ubuntu-24.04-arm
             platform: linux/arm64
+            arch: arm64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 25
+    timeout-minutes: 40
     services:
       mysql:
         image: mysql:8.4
@@ -31,9 +50,11 @@ jobs:
           --health-interval=10s --health-timeout=5s --health-retries=12
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.revision || github.sha }}
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22.x'
+          go-version: '1.25.x'
           cache-dependency-path: gateway/go.sum
       - uses: actions/setup-node@v4
         with:
@@ -44,6 +65,34 @@ jobs:
       - run: npm --prefix frontend ci
       - run: bash scripts/verify-all.sh
         env:
-          SILENCER_TEST_MYSQL_DSN: root:synthetic-ci-password@tcp(127.0.0.1:${{ job.services.mysql.ports[3306] }})/silencer_test?parseTime=true
-      - run: docker build --platform '${{ matrix.platform }}' -t silencer:test .
+          SILENCER_TEST_MYSQL_DSN: root:synthetic-ci-password@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/silencer_test?parseTime=true
+      - run: python3 scripts/check-public-release.py
+      - name: Build tested image
+        run: docker build --platform '${{ matrix.platform }}' --build-arg VERSION='${{ inputs.version || 'dev' }}' --build-arg REVISION='${{ inputs.revision || github.sha }}' -t silencer:test .
       - run: bash scripts/test-image.sh silencer:test '${{ matrix.platform }}'
+      - name: Docker Hub login
+        if: inputs.publish_images
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push verified platform candidate
+        if: inputs.publish_images
+        env:
+          VERSION: ${{ inputs.version }}
+          REVISION: ${{ inputs.revision }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          candidate="liuarui/silencer:build-${VERSION}-${REVISION:0:12}-${ARCH}"
+          docker tag silencer:test "$candidate"
+          docker push "$candidate"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$candidate")
+          [[ "$digest" =~ ^liuarui/silencer@sha256:[0-9a-f]{64}$ ]]
+          mkdir -p image-digests
+          printf '%s\n' "$digest" > "image-digests/$ARCH.txt"
+      - if: inputs.publish_images
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: image-digests/*.txt
+          if-no-files-found: error

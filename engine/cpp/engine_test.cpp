@@ -594,6 +594,14 @@ int main() {
   assert(mask_with_config(card_config, "size 313524224 2023") == "size 313524224 2023");
   const std::string chinese_email = mask_with_config(R"JSON({"rules":[{"pattern":"([^\\s@]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})","label":"EMAIL","semantic":true}]})JSON", "联系张三@qq.com");
   assert(chinese_email.find("张三@qq.com") == std::string::npos);
+  for (const std::string& separator : {std::string("："), std::string("，"), std::string("；")}) {
+    const std::string prefix = "请只原样返回这个合成测试邮箱" + separator;
+    const std::string probe = "silencer-probe-20261019@example.com";
+    const std::string prose_masked = mask_with_config(long_email_config, prefix + probe);
+    assert(prose_masked.rfind(prefix, 0) == 0);
+    assert(prose_masked.find(probe) == std::string::npos);
+    assert(prose_masked.find("{{EMAIL_") != std::string::npos);
+  }
   const std::string conn_as_email = mask_with_config(R"JSON({"rules":[{"pattern":"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})","label":"EMAIL","semantic":true}]})JSON", "postgres://user:secret123@db.internal");
   assert(conn_as_email.find("secret123@db.internal") != std::string::npos);
 

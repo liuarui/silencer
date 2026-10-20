@@ -1,4 +1,8 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { getCapabilities } from '@/api/capture'
+import type { CaptureConfig } from '@/api/capture'
+import { processingScope, subscribeProcessing, setProcessingTarget } from '@/lib/processing-target'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { useAuthStore } from '@/stores/authStore'
@@ -13,9 +17,25 @@ const SettingsPage = lazy(() => import('@/features/settings/pages/Settings'))
 const AuditPage = lazy(() => import('@/features/audit/pages/Audit'))
 const WordsPage = lazy(() => import('@/features/settings/pages/Words'))
 const ClientsPage = lazy(() => import('@/features/clients/pages/Clients'))
+const CapturePage = lazy(() => import('@/features/capture/pages/Capture'))
 
 function App() {
   const { setToken, authChecked, authenticated, setAuth } = useAuthStore()
+  const scope = useSyncExternalStore(subscribeProcessing, processingScope)
+  const [processingReady, setProcessingReady] = useState(false)
+  const scopedClient = useMemo(() => new QueryClient({ defaultOptions: { queries: { meta: { processingTarget: scope }, refetchOnWindowFocus: false, retry: 1, staleTime: 30000, refetchIntervalInBackground: false }, mutations: { retry: 0 } } }), [scope])
+  useEffect(() => {
+    if (!authenticated) return
+    let cancelled = false
+    void getCapabilities().then(async (cap) => {
+      if (cap.local) {
+        const cfg = await silencerFetch<CaptureConfig>('/api/local/processing/config')
+        if (!cancelled) setProcessingTarget(true, cfg.active_id)
+      } else if (!cancelled) setProcessingTarget(false)
+    }).finally(() => { if (!cancelled) setProcessingReady(true) }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [authenticated])
+  useEffect(() => () => { void scopedClient.cancelQueries() }, [scopedClient])
 
   // 浏览器初始化：读取一次性链接 token，再查询 Web 控制台登录状态。
   useEffect(() => {
@@ -67,9 +87,10 @@ function App() {
   if (!authChecked || !authenticated) {
     return <TokenGate />
   }
+  if (!processingReady) return <div className="p-6" role="status">Loading…</div>
 
   return (
-    <AppLayout>
+    <QueryClientProvider client={scopedClient}><AppLayout key={scope}>
       <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
@@ -77,12 +98,13 @@ function App() {
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/words" element={<WordsPage />} />
           <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/capture" element={<CapturePage />} />
           <Route path="/audit" element={<AuditPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-    </AppLayout>
+    </AppLayout></QueryClientProvider>
   )
 }
 

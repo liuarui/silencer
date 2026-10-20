@@ -31,7 +31,7 @@ func (r *requestRecord) recordToolDecision(findings []toolFinding, mode string) 
 	if r.store == nil {
 		return
 	}
-	eventMeta := map[string]any{"signal_type": "dangerous_action", "severity": "HIGH", "evidence": strings.Join(evidence, "\n"), "action": mode, "confirmation_required": mode != "observe", "tool_guard_rules": rules, "path": path, "method": method, "ingress": "proxy"}
+	eventMeta := map[string]any{"signal_type": "dangerous_action", "severity": "HIGH", "evidence": strings.Join(evidence, "\n"), "action": mode, "confirmation_required": mode != "observe", "tool_guard_rules": rules, "path": path, "method": method, "ingress": ingressFromMeta(meta)}
 	encoded, _ = json.Marshal(eventMeta)
 	r.appendLogEvent(storage.Event{ID: newRequestID(), RequestID: id, Type: "AUDIT_dangerous_action", Payload: []byte{}, Status: mode, Meta: string(encoded), CreatedAt: time.Now().UTC()})
 }

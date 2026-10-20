@@ -4,6 +4,7 @@
  * 所有控制台请求统一从这里发出，浏览器和 Docker 部署使用同源 fetch。
  */
 import { useAuthStore } from '@/stores/authStore'
+import { processingURL } from './processing-target'
 function engineBase(): string {
   return typeof window !== 'undefined' ? window.location.origin : ''
 }
@@ -22,6 +23,7 @@ export class SilencerApiError extends Error {
 }
 
 interface SilencerFetchOptions extends RequestInit {
+  processingTarget?: string
   /** 不注入 token（极少数公开端点用） */
   noToken?: boolean
   /** 返回原始 Response（导出下载等场景） */
@@ -54,7 +56,7 @@ export async function silencerFetch<T>(
   url: string,
   options: SilencerFetchOptions = {},
 ): Promise<T> {
-  const { noToken, raw, timeoutMs = DEFAULT_TIMEOUT_MS, ...rest } = options
+  const { noToken, raw, processingTarget, timeoutMs = DEFAULT_TIMEOUT_MS, ...rest } = options
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(rest.headers as Record<string, string> | undefined),
@@ -71,7 +73,7 @@ export async function silencerFetch<T>(
   const fetchOpts = { credentials: 'same-origin' as RequestCredentials, ...restOpts, headers, ...(signal ? { signal } : {}) }
 
   let resp: Response
-  const requestedUrl = url
+  const requestedUrl = processingURL(url, options.method ?? 'GET', options.body, processingTarget)
   try {
     resp = await window.fetch(`${engineBase()}${requestedUrl}`, fetchOpts)
   } catch (err: unknown) {

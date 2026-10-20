@@ -7,7 +7,7 @@ RUN npm ci --prefer-offline
 COPY frontend/ ./
 RUN npm run build && rm -rf dist/downloads
 
-FROM golang:1.22-bookworm AS gateway-builder
+FROM golang:1.25-bookworm AS gateway-builder
 WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends g++ libpcre2-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -22,6 +22,12 @@ RUN CGO_ENABLED=1 CGO_LDFLAGS='-L/out -Wl,-rpath,/usr/local/lib' \
     && CGO_ENABLED=1 go build -trimpath -ldflags='-s -w' -o /out/silencer-host-agent ./cmd/host-agent
 
 FROM debian:bookworm-slim AS runtime
+ARG VERSION=dev
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="Silencer" \
+    org.opencontainers.image.source="https://github.com/liuarui/silencer" \
+    org.opencontainers.image.version=$VERSION \
+    org.opencontainers.image.revision=$REVISION
 ENV SILENCER_GATEWAY_ADDR=0.0.0.0:8080 \
     SILENCER_CONTROL_CONFIG_FILE=/data/control.json \
     LD_LIBRARY_PATH=/usr/local/lib \

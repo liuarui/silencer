@@ -1,6 +1,6 @@
 # Contributing
 
-Use Go 1.22+, Node.js 22.12+, a C++17 compiler, PCRE2 development headers and pkg-config. Install frontend dependencies with `npm --prefix frontend ci`, then run `bash scripts/verify-all.sh`.
+Use Go 1.25+, Node.js 22.12+, a C++17 compiler, PCRE2 development headers and pkg-config. Install frontend dependencies with `npm --prefix frontend ci`, then run `bash scripts/verify-all.sh`.
 
 For changes to masking or restoration, include a regression that verifies the forwarded request and restored reply. Cover tool arguments and streaming boundaries when affected. Use synthetic inputs and disposable databases; keep real prompts, credentials and operational records out of commits.
 

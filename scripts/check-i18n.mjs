@@ -8,7 +8,7 @@
  *
  * 用法：node scripts/check-i18n.mjs   （在仓库任意目录执行均可；退出码 0 通过 / 1 失败）
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,6 +28,13 @@ if (zhStart < 0 || enStart < 0 || dictEnd < 0) {
 const keysOf = (seg) => new Set([...seg.matchAll(/(?:^|,)\s*'([^']+)':/gm)].map((m) => m[1]))
 const zh = keysOf(src.slice(zhStart, enStart))
 const en = keysOf(src.slice(enStart, dictEnd))
+const privateDictionary = join(SRC, 'private', 'extension-i18n.ts')
+if (existsSync(privateDictionary)) {
+  const local = readFileSync(privateDictionary, 'utf-8')
+  const split = local.indexOf('const en: Record')
+  for (const key of keysOf(local.slice(0, split))) zh.add(key)
+  for (const key of keysOf(local.slice(split))) en.add(key)
+}
 
 const walk = (dir, out = []) => {
   for (const name of readdirSync(dir)) {

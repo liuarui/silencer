@@ -937,12 +937,12 @@ export default function Dashboard() {
             {/* 按入口分组同屏（代理链路 / 浏览器扩展），各组各取 Top N。
                 组头计数让「×N 与日志条数一致」可核对，跳转恒带 &ingress=。 */}
             {groupWordsByIngress(stats, 20)
-              .filter((g) => g.ingress === 'proxy' || !!cfg?.ext_bridge_enabled)
+              .filter((g) => g.ingress !== 'ext' || !!cfg?.ext_bridge_enabled)
               .map((g) => (
                 <div key={g.ingress} className="space-y-2">
                   <div className="flex items-center gap-2 pt-1 text-[11px] font-semibold text-muted-foreground">
                     <span>
-                      {g.ingress === 'ext'
+                      {g.ingress === 'capture' ? tf('logs.ingress.groupCapture', { n: g.total.toLocaleString() }) : g.ingress === 'ext'
                         ? tf('logs.ingress.groupExt', { n: g.total.toLocaleString() })
                         : tf('logs.ingress.groupProxy', { n: g.total.toLocaleString() })}
                     </span>

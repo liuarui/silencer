@@ -56,7 +56,12 @@ frontend/.vite
 
 # Private runtime body logs are never build inputs.
 **/request-logs/
-
+.private/
+.public-export.json
 extension/
 website/
-.public-export.json
+native-release/
+frontend/src/private/
+frontend/src/api/ext.ts
+frontend/src/components/settings/ExtBridgeCard.tsx
+frontend/src/features/settings/pages/Extension.tsx

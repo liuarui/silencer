@@ -417,7 +417,7 @@ function Leaderboards({ days, granularity, hidden }: { days: number; granularity
    * 「扩展装了但一条都没走通」的信号，不能静默藏掉。
    */
   const wordGroups = groupWordsByIngress(data, 10).filter(
-    (g) => g.ingress === 'proxy' || !!cfg?.ext_bridge_enabled,
+    (g) => g.ingress !== 'ext' || !!cfg?.ext_bridge_enabled,
   )
   const groupedWordRows: RankRow[] = wordGroups.flatMap((g) => {
     const gMax = g.items[0]?.count ?? 0
@@ -427,7 +427,7 @@ function Leaderboards({ days, granularity, hidden }: { days: number; granularity
         name: '',
         count: 0,
         // 组头带计数：与首页一致，方便和日志页条数核对
-        _header: tf(g.ingress === 'ext' ? 'logs.ingress.groupExt' : 'logs.ingress.groupProxy', {
+        _header: tf(g.ingress === 'capture' ? 'logs.ingress.groupCapture' : g.ingress === 'ext' ? 'logs.ingress.groupExt' : 'logs.ingress.groupProxy', {
           n: g.total.toLocaleString(),
         }),
       },

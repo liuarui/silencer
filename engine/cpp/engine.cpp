@@ -531,6 +531,15 @@ bool valid_landline(const std::string& value) {
   return local < digits.size() && digits[local] >= '2' && digits[local] <= '9';
 }
 
+bool email_text_separator_before(const std::string& text, size_t offset) {
+  // These common prose delimiters are not part of an email local name. Keep
+  // a long Chinese instruction from being consumed as the email's prefix.
+  if (offset < 3) return false;
+  return text.compare(offset - 3, 3, "：") == 0 ||
+         text.compare(offset - 3, 3, "，") == 0 ||
+         text.compare(offset - 3, 3, "；") == 0;
+}
+
 bool semantic_match_valid(const std::string& text, size_t begin, size_t end,
                           size_t value_begin, size_t value_end, const std::string& value,
                           const std::string& label) {
@@ -556,7 +565,7 @@ bool semantic_match_valid(const std::string& text, size_t begin, size_t end,
   if (label == "EMAIL") {
     if (begin > 0) {
       const unsigned char previous = static_cast<unsigned char>(text[begin - 1]);
-      if (std::isalnum(previous) || previous >= 0x80 || previous == '.' || previous == '_' ||
+      if (std::isalnum(previous) || (previous >= 0x80 && !email_text_separator_before(text, begin)) || previous == '.' || previous == '_' ||
           previous == '%' || previous == '+' || previous == '-' || previous == ':') return false;
     }
     const size_t scheme = text.rfind("://", begin);
@@ -1034,6 +1043,7 @@ std::vector<std::pair<size_t, size_t>> builtin_matches(const Rule& rule, const s
       size_t begin = marker;
       while (begin > search_begin) {
         const unsigned char c = static_cast<unsigned char>(text[begin - 1]);
+        if (email == 3 && c >= 0x80 && email_text_separator_before(text, begin)) break;
         const bool atom = email == 3 ? !regex_space(c) && c != '@' :
                           email_atom(c) && (email == 2 || c < 0x80);
         if (!atom) break;

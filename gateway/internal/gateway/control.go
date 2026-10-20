@@ -39,7 +39,7 @@ func defaultControlConfig() map[string]any {
 		"sensitive_word_disabled": map[string]any{}, "sensitive_word_whole": []any{},
 		"secret_prefixes": []any{"sk-", "ghp_", "AIza"},
 		"builtin_rules":   defaultBuiltinRules(),
-		"_meta":           map[string]any{"builtin_rule_meta": builtinRuleMeta(), "version": "1.0.0"},
+		"_meta":           map[string]any{"builtin_rule_meta": builtinRuleMeta(), "version": releaseVersion},
 		"egress_proxy":    map[string]any{"enabled": false, "url": ""},
 		"audit":           map[string]any{"enabled": false, "passive": true, "fail_closed": true, "severity_floor": "MEDIUM", "signals": map[string]any{}, "tool_guard": map[string]any{"enabled": true, "mode": "observe"}},
 	}
@@ -795,7 +795,7 @@ func (s *Server) handleExtensionPing(w http.ResponseWriter, r *http.Request) {
 	s.configMu.RLock()
 	enabled, _ := s.control["ext_bridge_enabled"].(bool)
 	s.configMu.RUnlock()
-	s.writeJSON(w, http.StatusOK, map[string]any{"ok": enabled, "enabled": enabled, "version": "1.0.0", "ext_protocol": 2, "block_when_down": true, "record_events": true})
+	s.writeJSON(w, http.StatusOK, map[string]any{"ok": enabled, "enabled": enabled, "version": releaseVersion, "ext_protocol": 2, "block_when_down": true, "record_events": true})
 }
 
 func (s *Server) handleExtensionRotateToken(w http.ResponseWriter, r *http.Request) {
@@ -1323,7 +1323,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	config := cloneMap(s.control)
 	running, upstream := s.running, s.cfg.UpstreamURL
 	s.configMu.RUnlock()
-	config["version"] = "1.0.0"
+	config["version"] = releaseVersion
 	config["proxy_running"] = running
 	config["proxy_starting"] = false
 	config["proxy_stopping"] = false
@@ -2058,6 +2058,9 @@ func maskAggregateGroupResponse(aggregate *maskAggregate, limit int) map[string]
 }
 
 func ingressFromMeta(meta map[string]any) string {
+	if value, ok := meta["ingress"].(string); ok && strings.EqualFold(strings.TrimSpace(value), "capture") {
+		return "capture"
+	}
 	if value, ok := meta["ingress"].(string); ok && strings.EqualFold(strings.TrimSpace(value), "ext") {
 		return "ext"
 	}
@@ -2133,7 +2136,7 @@ func (s *Server) handleStatsToday(w http.ResponseWriter, r *http.Request) {
 	var promptTokens, completionTokens int64
 	cacheUsage := cacheUsageAggregate{}
 	maskStats := maskAggregate{}
-	ingressStats := map[string]*maskAggregate{"proxy": {}, "ext": {}}
+	ingressStats := map[string]*maskAggregate{"proxy": {}, "ext": {}, "capture": {}}
 	prefixMasks, prefixRewritten, prefixReused, prefixDiffSum, prefixDiffN := 0, 0, 0, 0, 0
 	for _, v := range reqs {
 		if requestHasMaskedItems(v) || maskedTokenCount(v.Masked) > 0 {
@@ -2189,8 +2192,9 @@ func (s *Server) handleStatsToday(w http.ResponseWriter, r *http.Request) {
 	restored, restoreByStatus := aggregateRestoreStats(reqs, evs, maskedRequestIDs)
 	by, topWords := maskAggregateResponse(maskStats, 10)
 	wordsByIngress := map[string]any{
-		"proxy": maskAggregateGroupResponse(ingressStats["proxy"], 100),
-		"ext":   maskAggregateGroupResponse(ingressStats["ext"], 100),
+		"capture": maskAggregateGroupResponse(ingressStats["capture"], 100),
+		"proxy":   maskAggregateGroupResponse(ingressStats["proxy"], 100),
+		"ext":     maskAggregateGroupResponse(ingressStats["ext"], 100),
 	}
 	prefix := prefixStats(prefixMasks, prefixRewritten, prefixReused, prefixDiffSum, prefixDiffN)
 	restoreFailed := restoreByStatus["unresolved"] + restoreByStatus["restore_skipped"]
@@ -2319,7 +2323,7 @@ func aggregateRestoreStats(reqs []storage.Request, events []storage.Event, maske
 }
 
 func emptyTodayStats() map[string]any {
-	return map[string]any{"requests": 0, "alerts": 0, "alert_counts": anomalyCounts(nil), "mask_events": 0, "masked_items": 0, "restored": 0, "restore_ok": 0, "restore_failed": 0, "restore_by_status": map[string]int{}, "by_type": map[string]int{}, "prefix": nil, "tokens": map[string]int{"prompt": 0, "completion": 0}, "cache": cacheUsageAggregate{}.response(), "by_label": map[string]int{}, "top_words": []any{}, "words_by_ingress": map[string]any{"proxy": maskAggregateGroupResponse(nil, 100), "ext": maskAggregateGroupResponse(nil, 100)}}
+	return map[string]any{"requests": 0, "alerts": 0, "alert_counts": anomalyCounts(nil), "mask_events": 0, "masked_items": 0, "restored": 0, "restore_ok": 0, "restore_failed": 0, "restore_by_status": map[string]int{}, "by_type": map[string]int{}, "prefix": nil, "tokens": map[string]int{"prompt": 0, "completion": 0}, "cache": cacheUsageAggregate{}.response(), "by_label": map[string]int{}, "top_words": []any{}, "words_by_ingress": map[string]any{"capture": maskAggregateGroupResponse(nil, 100), "proxy": maskAggregateGroupResponse(nil, 100), "ext": maskAggregateGroupResponse(nil, 100)}}
 }
 
 func prefixStats(masks, rewritten, reused, diffSum, diffN int) map[string]any {

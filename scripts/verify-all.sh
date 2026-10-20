@@ -4,6 +4,9 @@ set -euo pipefail
 # Verification gate for the Go/C++ gateway and React console.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+python3 "$ROOT/scripts/check-public-release.py"
+python3 "$ROOT/scripts/test-release-pipeline.py" -v
+
 echo "[go] unit tests"
 (cd "$ROOT/gateway" && go test ./...)
 
@@ -49,9 +52,10 @@ fi
 
 echo "[frontend] build"
 (cd "$ROOT/frontend" && npm run build)
-(cd "$ROOT/frontend" && npm run lint && npm run test:logs)
+(cd "$ROOT/frontend" && npm run lint && npm run test:logs && npm run test:capture)
 
 echo "[node] static checks"
+python3 "$ROOT/scripts/test-installer-lifecycle.py" -v
 bash -n "$ROOT/scripts/silencer-blue-green.sh"
 bash -n "$ROOT/scripts/benchmark-gateway.sh"
 bash -n "$ROOT/scripts/benchmark-stream.sh"

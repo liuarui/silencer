@@ -12,7 +12,7 @@
  */
 import type { TodayStats, IngressWordGroup } from '@/types/api'
 
-export type Ingress = 'proxy' | 'ext'
+export type Ingress = 'proxy' | 'ext' | 'capture'
 
 export interface IngressWordList {
   ingress: Ingress
@@ -64,7 +64,7 @@ export function groupWordsByIngress(
       items: (g.top_words ?? []).slice(0, limit),
     }
   }
-  return [pick('proxy'), pick('ext')]
+  return [pick('proxy'), pick('capture'), pick('ext')]
 }
 
 /** 由入口值构造日志页跳转查询串片段（保证「词条 ×N」与日志条数同口径）。 */

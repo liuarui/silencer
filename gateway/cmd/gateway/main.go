@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +16,21 @@ import (
 )
 
 func main() {
+	// Offline uninstall verification must work after the service exits, without
+	// loading runtime configuration, storage, tracing, or the masking engine.
+	if len(os.Args) > 1 && os.Args[1] == "capture-check-ca" {
+		if len(os.Args) != 5 || (os.Args[4] != "identity" && os.Args[4] != "trust") {
+			fmt.Fprintln(os.Stderr, "usage: capture-check-ca CERTIFICATE SHA256 identity|trust")
+			os.Exit(2)
+		}
+		result, err := gateway.CheckCaptureCleanupCA(os.Args[2], os.Args[3], os.Args[4] == "identity")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Println(result)
+		return
+	}
 	tracingShutdown, err := gateway.ConfigureTracing(context.Background())
 	if err != nil {
 		log.Fatalf("configure tracing: %v", err)
@@ -44,6 +60,7 @@ func main() {
 	}
 	defer store.Close()
 	svc.SetStorage(store)
+	svc.StartLocalCapture()
 	httpServer := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           svc.Handler(),

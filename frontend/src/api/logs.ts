@@ -25,7 +25,7 @@ export interface LogsParams {
    * 与词榜分组**同口径**——首页词条跳转必须带上它，否则「词条 ×N」与
    * 「点进去的日志条数」对不上，用户会判定统计坏了。
    */
-  ingress?: 'proxy' | 'ext'
+  ingress?: 'proxy' | 'ext' | 'capture'
   /** 列表轻量模式（默认 true，明文只走详情回源） */
   slim?: boolean
 }

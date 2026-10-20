@@ -29,6 +29,9 @@ type Config struct {
 	AuthToken                    string `json:"-"`
 	AuthUsername                 string `json:"-"`
 	HostAgentSocket              string `json:"host_agent_socket"`
+	LocalMode                    bool   `json:"local_mode"`
+	CaptureForwardEnabled        bool   `json:"capture_forward_enabled"`
+	CaptureAllowedTargets        string `json:"capture_allowed_targets"`
 }
 
 // An explicitly configured runtime file remains required. Control-only
@@ -125,6 +128,18 @@ func LoadConfig() (Config, error) {
 	firstNonEmpty(&cfg.EngineLibrary, "SILENCER_ENGINE_LIB")
 	firstNonEmpty(&cfg.WebDist, "SILENCER_WEB_DIST")
 	firstNonEmpty(&cfg.HostAgentSocket, "SILENCER_HOST_AGENT_SOCKET")
+	for name, dest := range map[string]*bool{"SILENCER_LOCAL_MODE": &cfg.LocalMode, "SILENCER_CAPTURE_FORWARD_ENABLED": &cfg.CaptureForwardEnabled} {
+		if value := os.Getenv(name); value != "" {
+			parsed, err := strconv.ParseBool(value)
+			if err != nil {
+				return cfg, fmt.Errorf("%s must be boolean", name)
+			}
+			*dest = parsed
+		}
+	}
+	if value := os.Getenv("SILENCER_CAPTURE_ALLOWED_TARGETS"); value != "" {
+		cfg.CaptureAllowedTargets = value
+	}
 	if path := strings.TrimSpace(os.Getenv("SILENCER_ENGINE_CONFIG_FILE")); path != "" {
 		data, err := os.ReadFile(path)
 		if err != nil {

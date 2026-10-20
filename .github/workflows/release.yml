@@ -1,0 +1,107 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      revision: ${{ steps.release.outputs.revision }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+      - id: release
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v\d+\.\d+\.\d+', tag):
+              raise SystemExit('A stable vMAJOR.MINOR.PATCH tag is required')
+          revision = subprocess.check_output(['git', 'rev-parse', tag+'^{commit}'], text=True).strip()
+          assert revision == subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          subprocess.run(['git', 'merge-base', '--is-ancestor', revision, 'origin/main'], check=True)
+          version = tag[1:]
+          assert json.loads(Path('frontend/package.json').read_text())['version'] == version
+          assert Path('docs/releases/'+version+'.md').is_file()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as target:
+              target.write(f'revision={revision}\nversion={version}\ntag={tag}\n')
+          PY
+  images:
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+    with:
+      revision: ${{ needs.prepare.outputs.revision }}
+      version: ${{ needs.prepare.outputs.version }}
+      publish_images: true
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  packages:
+    needs: prepare
+    uses: ./.github/workflows/capture-native.yml
+    with:
+      revision: ${{ needs.prepare.outputs.revision }}
+  publish:
+    needs: [prepare, images, packages]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.revision }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: image-digest-*
+          path: image-digests
+          merge-multiple: true
+      - run: python3 scripts/assemble-release.py artifacts release
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Promote verified platform digests
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          amd64=$(cat image-digests/amd64.txt)
+          arm64=$(cat image-digests/arm64.txt)
+          [[ "$amd64" =~ ^liuarui/silencer@sha256:[0-9a-f]{64}$ ]]
+          [[ "$arm64" =~ ^liuarui/silencer@sha256:[0-9a-f]{64}$ ]]
+          docker buildx imagetools create -t "liuarui/silencer:$VERSION" "$amd64" "$arm64"
+          docker buildx imagetools inspect --raw "liuarui/silencer:$VERSION" > index.json
+          python3 scripts/check-image-index.py index.json "$amd64" "$arm64"
+          for tag in "${VERSION%.*}" latest; do
+            docker buildx imagetools create -t "liuarui/silencer:$tag" "liuarui/silencer:$VERSION"
+            docker buildx imagetools inspect --raw "liuarui/silencer:$tag" > alias.json
+            python3 scripts/check-image-index.py alias.json "$amd64" "$arm64"
+          done
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: gh release create "$TAG" release/* --verify-tag --title "Silencer $VERSION" --notes-file "docs/releases/$VERSION.md"

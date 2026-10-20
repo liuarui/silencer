@@ -64,10 +64,10 @@ export interface ConfigPatch {
   match?: string
 }
 
-export function patchConfig(patch: ConfigPatch): Promise<SaveConfigResponse> {
+export function patchConfig(patch: ConfigPatch, processingTarget?: string): Promise<SaveConfigResponse> {
   return silencerFetch<SaveConfigResponse>('/api/config/patch', {
     method: 'POST',
-    body: JSON.stringify(patch),
+    body: JSON.stringify(patch), processingTarget,
   })
 }
 

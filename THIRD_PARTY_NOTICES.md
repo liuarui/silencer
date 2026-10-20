@@ -49,3 +49,19 @@ container. Pattern syntax validation also uses the C++ standard library.
 This table covers direct runtime dependencies, not every
 transitive package. Consult module and distribution metadata for complete
 copyright and license terms when redistributing dependency bundles.
+
+## Native capture bundles
+
+Native releases include mitmproxy 12.2.3 (MIT) and its platform helpers. macOS
+and Windows use the complete official standalone distribution, retaining vendor
+notices and macOS signatures. Linux builds from the hash-pinned wheel lockfile;
+the runtime includes installed package license files, the lockfile, installation
+report and build manifest. mitmproxy-rs and platform packages are pinned to
+0.12.11. Windows helper files include WinDivert, whose upstream license notices
+remain part of the vendor distribution. See https://mitmproxy.org/ and
+https://github.com/mitmproxy/mitmproxy for upstream source and notices.
+
+PCRE2 10.47 is statically linked in macOS native packages with its LICENCE notice.
+Windows includes MinGW runtime DLLs and PCRE2; their redistribution terms remain
+applicable. Native build inputs and complete package contents should be reviewed
+when redistributing modified bundles.

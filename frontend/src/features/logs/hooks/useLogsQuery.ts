@@ -22,7 +22,7 @@ export interface UseLogsQueryOptions {
   ingress: string
   /** Normalized API filters; UI sentinels are resolved by the page. */
   requestType?: string
-  requestIngress?: 'proxy' | 'ext'
+  requestIngress?: 'proxy' | 'ext' | 'capture'
   hidden: boolean
   onTail: (tail: string[]) => void
 }

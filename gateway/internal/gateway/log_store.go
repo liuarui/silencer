@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/silencer/gateway/internal/platformfs"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
-	"syscall"
 	"time"
 
 	"github.com/silencer/gateway/internal/storage"
@@ -58,7 +58,7 @@ func newRequestCapture(root, id string, enabled bool) *bodyCapture {
 	if c.err != nil {
 		return c
 	}
-	if c.err = syscall.Flock(int(c.lease.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); c.err != nil {
+	if c.err = platformfs.Lock(c.lease, platformfs.Exclusive|platformfs.Nonblock); c.err != nil {
 		return c
 	}
 	if !enabled {
@@ -77,16 +77,15 @@ func newRequestCapture(root, id string, enabled bool) *bodyCapture {
 }
 
 func lockCaptureRoot(root string) (*os.File, error) {
-	return lockCaptureRootMode(root, syscall.LOCK_EX)
+	return lockCaptureRootMode(root, platformfs.Exclusive)
 }
 
 func lockCaptureRootMode(root string, mode int) (*os.File, error) {
-	fd, err := syscall.Open(filepath.Join(root, ".capture.lock"), syscall.O_CREAT|syscall.O_RDWR|syscall.O_NOFOLLOW, 0600)
+	f, err := platformfs.OpenNoFollow(filepath.Join(root, ".capture.lock"), os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return nil, err
 	}
-	f := os.NewFile(uintptr(fd), "capture root lock")
-	if err = syscall.Flock(fd, mode); err != nil {
+	if err = platformfs.Lock(f, mode); err != nil {
 		f.Close()
 		return nil, err
 	}
@@ -149,7 +148,7 @@ func (s *Server) logRequestActive(id string) bool {
 		return true
 	}
 	defer file.Close()
-	if err = syscall.Flock(int(file.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+	if err = platformfs.Lock(file, platformfs.Exclusive|platformfs.Nonblock); err != nil {
 		return true
 	}
 	return false
@@ -333,7 +332,7 @@ func (s *Server) withInactiveBody(ctx context.Context, id string, action func(st
 	root := s.logDirectory()
 	// A busy root is retried on the next sweep, never allowed to hold shutdown
 	// behind another process's capture creation.
-	lock, err := lockCaptureRootMode(root, syscall.LOCK_EX|syscall.LOCK_NB)
+	lock, err := lockCaptureRootMode(root, platformfs.Exclusive|platformfs.Nonblock)
 	if os.IsNotExist(err) {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -358,11 +357,10 @@ func (s *Server) withInactiveBody(ctx context.Context, id string, action func(st
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return errors.New("invalid capture directory")
 	}
-	fd, err := syscall.Open(filepath.Join(dir, ".lease"), syscall.O_RDWR|syscall.O_NOFOLLOW, 0600)
+	f, err := platformfs.OpenNoFollow(filepath.Join(dir, ".lease"), os.O_RDWR, 0600)
 	if err == nil {
-		f := os.NewFile(uintptr(fd), "capture lease")
 		defer f.Close()
-		if err = syscall.Flock(fd, syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		if err = platformfs.Lock(f, platformfs.Exclusive|platformfs.Nonblock); err != nil {
 			return err
 		}
 	} else if !os.IsNotExist(err) {
@@ -414,7 +412,7 @@ func (s *Server) removeExpiredBody(ctx context.Context, id string) {
 		}
 		return s.store.CompleteBodyCleanup(ctx, id)
 	})
-	if err != nil && ctx.Err() == nil && !errors.Is(err, syscall.EWOULDBLOCK) {
+	if err != nil && ctx.Err() == nil && !platformfs.IsBusy(err) {
 		s.logger.Print("expired log body cleanup failed")
 	}
 }

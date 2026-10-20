@@ -74,6 +74,7 @@ func (s *Server) writeHostAgentResponse(w http.ResponseWriter, resp hostagent.Re
 }
 
 type Server struct {
+	capture  *captureController
 	cfg      Config
 	engine   Engine
 	engineMu sync.RWMutex
@@ -673,7 +674,7 @@ func (r *requestRecord) appendOperationalEvents(item storage.Request) {
 		meta = map[string]any{}
 	}
 	meta["sid"] = item.ID
-	if meta["ingress"] != "ext" {
+	if meta["ingress"] != "ext" && meta["ingress"] != "capture" {
 		meta["ingress"] = "proxy"
 	}
 	maskCount := maskedTokenCount(item.Masked)
@@ -1380,6 +1381,9 @@ func NewServer(cfg Config, engine Engine) (*Server, error) {
 	if hasConfiguredUpstream(s.control) {
 		s.running = true
 	}
+	if err := s.initCapture(); err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -1504,6 +1508,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.requests.begin()
 	s.lifecycleMu.Unlock()
 	defer s.requests.end()
+	if s.Config().LocalMode && !validLocalCaptureOrigin(r) {
+		s.captureError(w, 403, "origin_rejected")
+		return
+	}
+	if s.handleCaptureRoute(w, r) {
+		return
+	}
 	if s.extensionDisabled && (isExtensionAPIPath(r.URL.Path) || strings.HasPrefix(r.URL.Path, "/downloads/")) {
 		s.writeJSON(w, http.StatusNotFound, map[string]any{"error": "extension_unavailable"})
 		return
@@ -1714,7 +1725,11 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	s.configMu.RLock()
 	proxy, running, cfg := s.proxy, s.running, s.cfg
 	s.configMu.RUnlock()
-	if routeProxy, named, err := s.namedRouteProxy(r.URL.Path); named {
+	dispatch, captured := r.Context().Value(captureDispatchKey{}).(*captureDispatch)
+	if captured {
+		proxy, running = dispatch.proxy, true
+	}
+	if routeProxy, named, err := s.namedRouteProxy(r.URL.Path); !captured && named {
 		if err != nil {
 			// A global upstream still accepts an arbitrary named route as a
 			// path alias. When no global target exists, an unknown named route
@@ -1778,10 +1793,10 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 			var session MaskingSession
 			var sessionErr error
 			if durable, ok := streamer.(DurableMaskingEngine); ok && s.store != nil {
-				mappingScope = proxyMappingScope(r)
+				mappingScope = requestMappingScope(r)
 				session, sessionErr = durable.NewDurableMaskingSession(r.Context(), mappingScope, s.store)
 			} else if reusable, ok := streamer.(ReusableMaskingEngine); ok {
-				mappingScope = proxyMappingScope(r)
+				mappingScope = requestMappingScope(r)
 				session, sessionErr = reusable.NewReusableMaskingSession(r.Context(), mappingScope)
 			} else {
 				session, sessionErr = streamer.NewMaskingSession(r.Context())
@@ -1838,7 +1853,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	// Bodyless requests can also return references from provider-side history.
 	if contextualMasker == nil && (r.Body == nil || r.Body == http.NoBody) && s.store != nil {
 		if durable, ok := s.currentEngine().(DurableMaskingEngine); ok {
-			mappingScope = proxyMappingScope(r)
+			mappingScope = requestMappingScope(r)
 			session, err := durable.NewDurableMaskingSession(r.Context(), mappingScope, s.store)
 			if err == nil {
 				_, err = session.Finish(r.Context())
@@ -1872,6 +1887,10 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 		}
 		ledgerMasked, maskedTruncated := boundedLedgerBytes(maskedBody, previewLimit)
 		metadata := map[string]any{"method": r.Method, "path": r.URL.Path, "protocol": r.Proto, "ingress": "proxy", "body_truncated": rawTruncated || maskedTruncated}
+		if captured {
+			metadata["ingress"] = "capture"
+			metadata["target"] = dispatch.origin
+		}
 		if mappingScope != "" {
 			metadata["mapping_scope"], metadata["mapping_mode"] = mappingScope, "entity-v1"
 		}
@@ -2102,7 +2121,7 @@ func (s *Server) handleRequests(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		ingress := r.URL.Query().Get("ingress")
-		if ingress != "" && ingress != "proxy" && ingress != "ext" {
+		if ingress != "" && ingress != "proxy" && ingress != "ext" && ingress != "capture" {
 			s.writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_ingress"})
 			return
 		}
@@ -2683,6 +2702,11 @@ func joinURLPath(base, suffix string) string {
 
 // Shutdown is provided for callers that own the http.Server lifecycle.
 func (s *Server) Shutdown(ctx context.Context) error {
+	if s.capture != nil {
+		s.capture.mu.Lock()
+		s.capture.closed = true
+		s.capture.mu.Unlock()
+	}
 	s.lifecycleMu.Lock()
 	s.shuttingDown = true
 	s.ready.set(false)
@@ -2724,6 +2748,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.retired = nil
 	s.retiredMu.Unlock()
 	closeEngines := func() {
+		if s.capture != nil {
+			s.capture.close()
+		}
 		if transport, ok := s.proxyTransport.(interface{ CloseIdleConnections() }); ok {
 			transport.CloseIdleConnections()
 		}

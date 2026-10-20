@@ -7,6 +7,7 @@ package gateway
 #cgo CFLAGS: -I../../../engine/cpp
 #cgo linux LDFLAGS: -lstdc++ -lsilencer_engine
 #cgo darwin LDFLAGS: -lc++ -lsilencer_engine
+#cgo windows LDFLAGS: -lstdc++ -lsilencer_engine -lws2_32
 #include <stdlib.h>
 #include "engine.h"
 extern char* silencerResolveMapping(uintptr_t, char*, size_t);

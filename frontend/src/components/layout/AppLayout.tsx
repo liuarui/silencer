@@ -24,7 +24,9 @@ import {
   X,
   LogOut,
 } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { CaptureConfig } from '@/api/capture'
+import { processingScope } from '@/lib/processing-target'
 import { startProxy, stopProxy } from '@/api/proxy'
 import { emergencyDisableOriginCheck } from '@/api/settings'
 import { useAuthStore } from '@/stores/authStore'
@@ -45,6 +47,7 @@ import { useProxyStatus } from '@/features/proxy/hooks/useProxyStatus'
 const NAV_ITEMS = [
   { to: '/', key: 'dashboard', icon: LayoutDashboard },
   { to: '/clients', key: 'clients', icon: Waypoints },
+  { to: '/capture', key: 'capture', icon: ShieldCheck },
   { to: '/logs', key: 'logs', icon: ScrollText },
   { to: '/stats', key: 'stats', icon: ChartNoAxesColumnIncreasing },
   { to: '/words', key: 'words', icon: ScanText },
@@ -83,6 +86,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   })
   const { dark, toggle } = useTheme()
   const queryClient = useQueryClient()
+  const processorScope = processingScope()
+  const processor = useQuery({ queryKey: ['processingIdentity'], enabled: processorScope !== 'server', queryFn: () => silencerFetch<CaptureConfig>('/api/local/processing/config') })
   const { username, setAuth } = useAuthStore()
   // Pause polling while the page is hidden, then refresh when it becomes visible.
   const { hidden } = useVisibility()
@@ -159,6 +164,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     if (p === '/stats') return t('nav.stats')
     if (p === '/words') return t('nav.words')
     if (p === '/clients') return t('nav.clients')
+    if (p === '/capture') return t('nav.capture')
     if (p === '/audit') return t('nav.audit')
     if (p === '/settings') return t('nav.settings')
     return t('layout.appName')
@@ -327,6 +333,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               />
             </span>
             <span className="text-[13px] font-medium text-foreground">
+              {(processorScope !== 'server' || routeLocation.pathname === '/capture') && <span className="mr-1 text-muted-foreground">{processorScope === 'server' ? lang === 'en' ? 'Reverse proxy:' : '反向代理：' : lang === 'en' ? 'Local proxy:' : '本机反代：'}</span>}
               {showEngineError
                 ? t('layout.engineErr')
                 : isStarting
@@ -402,6 +409,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
+
+        {processorScope !== 'server' && <div role="status" className="border-b bg-muted/40 px-4 py-2 text-xs">
+          {lang === 'en' ? 'Rules, requests, logs and statistics: ' : '当前规则、请求、日志与统计的处理端：'}
+          <strong>{processorScope === 'local' ? lang === 'en' ? 'This computer' : '本机' : processor.data?.profiles.find((profile) => profile.id === processorScope)?.url ?? (lang === 'en' ? 'Remote server' : '远程服务器')}</strong>
+          <NavLink to="/capture" className="ml-3 underline">{lang === 'en' ? 'Capture settings' : '捕获与处理位置设置'}</NavLink>
+        </div>}
 
         {originBlocked && (
           <div className="flex items-center justify-between border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-xs text-amber-800 dark:text-amber-200">

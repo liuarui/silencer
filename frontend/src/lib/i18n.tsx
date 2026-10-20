@@ -14,6 +14,8 @@ export type Lang = 'zh' | 'en'
 
 // ========== 字典 ==========
 const zh: Record<string, string> = {
+  'nav.capture': '捕获模式',
+  'logs.ingress.groupCapture': '捕获模式 · {n}',
   // 导航
   'nav.dashboard': '控制台',
   'nav.logs': '拦截日志',
@@ -907,6 +909,7 @@ const zh: Record<string, string> = {
   'settings.upstream.cancel': '取消',
   'settings.upstream.save': '保存',
   'settings.backup.title': '配置备份与回滚',
+  'settings.backup.localScope': '这里管理本机反代配置备份。远程处理端规则、捕获凭据和证书需要单独备份。',
   'settings.backup.desc': '每次保存配置前自动备份一份，最多保留最近 10 份（旧的自动清理）——误改/误删随时可回滚',
   'settings.backup.desc2': '每次保存前自动备份，保留最近 10 份。误操作导致配置丢失时从这里找回。',
   'settings.backup.summaryClients': '客户端',
@@ -1086,7 +1089,7 @@ const zh: Record<string, string> = {
   'settings.advanced.pathAdd': '+ 路径',
   'settings.advanced.pathPh': '如 /v1/chat/completions',
   'settings.advanced.engineBehavior': '引擎行为',
-  'settings.advanced.captureMode': '捕获模式',
+  'settings.advanced.captureMode': '反代入口',
   'settings.advanced.captureModeHint': '反向代理（客户端 base_url 指向本机端口）',
   'settings.advanced.stopMode': '代理不可用时（stop_mode）',
   'settings.advanced.stopMode.error': '503 占位（推荐，明确告知客户端）',
@@ -1446,6 +1449,8 @@ const zh: Record<string, string> = {
 }
 
 const en: Record<string, string> = {
+  'nav.capture': 'Capture',
+  'logs.ingress.groupCapture': 'Capture · {n}',
   'nav.dashboard': 'Dashboard',
   'nav.logs': 'Logs',
   'nav.stats': 'Statistics',
@@ -2333,6 +2338,7 @@ const en: Record<string, string> = {
   'settings.upstream.cancel': 'Cancel',
   'settings.upstream.save': 'Save',
   'settings.backup.title': 'Config Backup & Rollback',
+  'settings.backup.localScope': 'These backups belong to the local reverse proxy. Back up remote rules, capture credentials and certificates separately.',
   'settings.backup.desc': 'A backup is auto-created before every config save (last 10 kept, old ones cleaned) — mistakes can always be rolled back',
   'settings.backup.desc2': 'Auto-backup before each save, keeping the last 10. Recover from here when a misoperation loses config.',
   'settings.backup.summaryClients': 'clients',
@@ -2511,7 +2517,7 @@ const en: Record<string, string> = {
   'settings.advanced.pathAdd': '+ Path',
   'settings.advanced.pathPh': 'e.g. /v1/chat/completions',
   'settings.advanced.engineBehavior': 'Engine Behavior',
-  'settings.advanced.captureMode': 'Capture Mode',
+  'settings.advanced.captureMode': 'Reverse proxy entry',
   'settings.advanced.captureModeHint': 'Reverse proxy (client base_url points to a local port)',
   'settings.advanced.stopMode': 'Behavior when proxy unavailable (stop_mode)',
   'settings.advanced.stopMode.error': '503 placeholder (recommended, tells the client clearly)',
@@ -2866,6 +2872,13 @@ const en: Record<string, string> = {
   'logs.ledgerNoBody': "No body is available. The request may still be running, or detailed logging was disabled when it was recorded.",
 }
 const DICTS: Record<Lang, Record<string, string>> = { zh, en }
+// Private development dictionaries are absent from public checkouts and builds.
+if (import.meta.env.DEV) {
+  const local = import.meta.glob<{ default: Partial<Record<Lang, Record<string, string>>> }>('../private/*-i18n.ts', { eager: true })
+  for (const entry of Object.values(local)) {
+    for (const lang of ['zh', 'en'] as const) Object.assign(DICTS[lang], entry.default[lang] ?? {})
+  }
+}
 const STORAGE_KEY = 'silencer-lang'
 
 export function detectLang(): Lang {

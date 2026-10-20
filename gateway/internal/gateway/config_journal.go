@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/silencer/gateway/internal/platformfs"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -34,29 +34,21 @@ func lockConfigDisk(anchor string) (*os.File, error) {
 	if anchor == "" {
 		return nil, nil
 	}
-	fd, err := syscall.Open(anchor+".lock", syscall.O_CREAT|syscall.O_RDWR|syscall.O_NOFOLLOW, 0600)
+	f, err := platformfs.OpenNoFollow(anchor+".lock", os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return nil, err
 	}
-	f := os.NewFile(uintptr(fd), "configuration lock")
 	if info, statErr := f.Stat(); statErr != nil || !info.Mode().IsRegular() {
 		f.Close()
 		return nil, errors.New("configuration lock is not a regular file")
 	}
-	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
+	if err = platformfs.Lock(f, platformfs.Exclusive); err != nil {
 		f.Close()
 		return nil, err
 	}
 	return f, nil
 }
-func syncConfigDirectory(path string) error {
-	f, err := os.Open(filepath.Dir(path))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return f.Sync()
-}
+func syncConfigDirectory(path string) error { return platformfs.SyncDirectory(path) }
 
 // Hooks are local to one transaction so fault tests do not mutate global state.
 type configDiskOps struct {
@@ -66,7 +58,7 @@ type configDiskOps struct {
 }
 
 func defaultConfigDiskOps() configDiskOps {
-	return configDiskOps{os.Rename, os.Remove, syncConfigDirectory}
+	return configDiskOps{platformfs.Replace, os.Remove, syncConfigDirectory}
 }
 func writeConfigBytes(path string, data []byte) error {
 	return writeConfigBytesUsing(path, data, defaultConfigDiskOps())
@@ -174,14 +166,13 @@ func recoverConfigJournal(anchor string, allowed ...string) error {
 	}
 	anchor = configPathIdentity(anchor)
 	path := anchor + ".transaction"
-	fd, err := syscall.Open(path, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	f, err := platformfs.OpenNoFollow(path, os.O_RDONLY, 0)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	f := os.NewFile(uintptr(fd), "configuration journal")
 	defer f.Close()
 	info, err := f.Stat()
 	if err != nil {

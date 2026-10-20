@@ -1,4 +1,4 @@
-# Silencer 1.0.0
+# Silencer 1.1.0
 
 [中文](README.md) · [Website](https://silencer.5970000.xyz/) · [Live demo](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [Deployment](docs/TUTORIAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Benchmarks](docs/PERFORMANCE.md)
 
@@ -20,17 +20,17 @@ See [website/README.md](website/README.md) for the static website source and dep
 
 ## Quick start
 
-Published images support `linux/amd64` and `linux/arm64`. Both `1.0.0` and `latest` automatically select the host architecture:
+Published images support `linux/amd64` and `linux/arm64`. Both `1.1.0` and `latest` automatically select the host architecture:
 
 ```bash
-docker pull liuarui/silencer:1.0.0
+docker pull liuarui/silencer:1.1.0
 export SILENCER_GATEWAY_TOKEN="$(openssl rand -hex 24)"
 docker run -d --name silencer --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -v silencer_data:/data \
   -e SILENCER_GATEWAY_TOKEN \
   -e SILENCER_CONTROL_CONFIG_FILE=/data/control.json \
-  liuarui/silencer:1.0.0
+  liuarui/silencer:1.1.0
 curl http://127.0.0.1:8080/readyz
 ```
 
@@ -49,6 +49,14 @@ cp .env.mysql.example .env
 # Set database passwords and a management token before public deployment.
 docker compose -f docker-compose.mysql.yml up -d --build
 ```
+
+## Capture mode
+
+Open **Capture mode** in the existing console to install the local background component, check permissions and certificate trust, and select local processing (the default) or a remote HTTPS Silencer server. Clients keep their original URLs and API keys. Rules, logs and statistics follow the selected processor.
+
+Version 1.1 provides Windows 10/11 x64, macOS 14+ (Intel / Apple Silicon), and Ubuntu 24.04 x64 (kernel 6.8+) bundles. The console guides installation, permission and certificate checks, repair, updates and removal.
+
+Get bundles from [GitHub Releases](https://github.com/liuarui/silencer/releases/latest). Docker runs the server; native capture runs on the AI client's computer. macOS capture and Clash TUN have been exercised locally. Windows/Linux system authorization and proxy coexistence still require field validation. See [capture requirements and protection limits](docs/CAPTURE.md).
 
 ## Connect a client
 
@@ -74,7 +82,7 @@ Unavailable engines, masking errors and restoration failures return errors. Bina
 
 ## Development and verification
 
-Use Go 1.22+, Node.js 22.12+, a C++17 compiler, PCRE2 development headers and pkg-config.
+Use Go 1.25+, Node.js 22.12+, a C++17 compiler, PCRE2 development headers and pkg-config.
 
 ```bash
 # Debian/Ubuntu
@@ -90,7 +98,7 @@ docker build -t silencer:test .
 bash scripts/test-image.sh silencer:test
 ```
 
-See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.0.0.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
+See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.1.0.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
 
 ## Sponsors
 

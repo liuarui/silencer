@@ -75,7 +75,7 @@ verify a candidate before promoting it:
 ```bash
 set -euo pipefail
 release_image=liuarui/silencer
-release_version=1.0.0
+release_version=1.1.0
 release_revision="$(git rev-parse HEAD)"
 release_candidate="$release_image:build-$release_version-${release_revision:0:12}"
 release_metadata="$(mktemp)"

@@ -62,8 +62,32 @@ Thumbs.db
 *.swp
 *.swo
 
-# Excluded from the public release
+# Local capture credentials, CA private keys and native release artifacts
+*.capture/
+**/__pycache__/
+native-release/
+
+# Local-only source, operational records and credentials stay in this checkout.
+.private/
 .public-export.json
 extension/
-dist_extension/
+frontend/src/private/
+frontend/src/api/ext.ts
+frontend/src/components/settings/ExtBridgeCard.tsx
+frontend/src/features/settings/pages/Extension.tsx
+docs/BROWSER_EXTENSION*.md
+docs/assets/browser-extension*.jpg
 docs/verification/
+docs/INCIDENT*.md
+docs/DEPLOYMENT*.md
+docs/AUDIT*.md
+docs/RELEASE_1.0.0.md
+scripts/check-extension.mjs
+scripts/test-extension-*.mjs
+ai-coding/
+.turbo/
+.claude/
+.pi/
+.pi-subagents/
+.codex/
+.workbuddy-ai/

@@ -1,0 +1,112 @@
+name: Capture native checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      revision:
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux-amd64
+          - os: macos-15
+            platform: darwin-arm64
+          - os: macos-15-intel
+            platform: darwin-amd64
+          - os: windows-2022
+            platform: windows-amd64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: gateway/go.sum
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y g++ libpcre2-dev pkg-config binutils
+      - if: runner.os == 'macOS'
+        run: brew install pkg-config
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc 'pacman --noconfirm -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-pcre2 mingw-w64-x86_64-pkgconf'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          'C:\msys64\mingw64\bin' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - if: runner.os != 'Linux'
+        run: python scripts/prepare-native-capture.py --out "$RUNNER_TEMP/vendor"
+      - if: runner.os != 'Linux'
+        run: python -m pip install mitmproxy==12.2.3 mitmproxy-rs==0.12.11
+      - if: runner.os == 'Linux'
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r scripts/linux-capture-runtime.lock
+      - run: python scripts/check-public-release.py
+      - run: python scripts/test-capture-native.py
+      - run: python scripts/test-release-bundle.py -v
+      - run: python scripts/test-release-pipeline.py -v
+      - if: runner.os != 'Windows'
+        run: python scripts/test-installer-lifecycle.py -v
+      - run: python -m unittest discover -s gateway/capture-tests -v
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/test-windows-installer.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/test-windows-installer.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/test-windows-installer-acl.ps1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Set-Location gateway
+          go test ./internal/platformfs ./internal/hostagent -run TestWindows -count=1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go test ./internal/gateway -run TestWindowsCapture -count=1
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build Linux runtime and bundle
+        if: runner.os == 'Linux'
+        run: |
+          python scripts/build-linux-capture-runtime.py --out "$RUNNER_TEMP/capture-runtime"
+          python scripts/build-local-release.py --runtime "$RUNNER_TEMP/capture-runtime" --out "$RUNNER_TEMP/local-release" --pcre2-license /usr/share/doc/libpcre2-dev/copyright
+      - name: Build macOS bundle
+        if: runner.os == 'macOS'
+        run: python scripts/build-local-release.py --runtime "$RUNNER_TEMP/vendor/runtime" --out "$RUNNER_TEMP/local-release" --pcre2-license "$RUNNER_TEMP/vendor/source/pcre2-10.47/LICENCE.md"
+      - name: Build Windows bundle
+        if: runner.os == 'Windows'
+        run: |
+          python scripts/build-local-release.py --runtime "$RUNNER_TEMP/vendor/runtime" --out "$RUNNER_TEMP/local-release" --pcre2-license C:/msys64/mingw64/share/licenses/pcre2/LICENCE.md
+      - name: Smoke test packaged application
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          suffix=.tar.gz
+          if [[ "$PLATFORM" == windows-* ]]; then suffix=.zip; fi
+          python scripts/test-local-release.py "$RUNNER_TEMP/local-release/silencer-local-$PLATFORM$suffix"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}
+          path: ${{ runner.temp }}/local-release/*
+          if-no-files-found: error
+          retention-days: 7

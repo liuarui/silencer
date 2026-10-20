@@ -146,7 +146,7 @@ export default function LogsPage() {
     const urlType = (searchParams.get('type') || '').trim().toUpperCase()
     const urlFulltext = searchParams.get('fulltext') === '1'
     const urlIngress = (searchParams.get('ingress') || '').trim().toLowerCase()
-    const normalizedIngress = urlIngress === 'proxy' || urlIngress === 'ext' ? urlIngress : INGRESS_ALL
+    const normalizedIngress = urlIngress === 'proxy' || urlIngress === 'ext' || urlIngress === 'capture' ? urlIngress : INGRESS_ALL
     const parsedType = urlType || FILTER_ALL
     setFilterType(parsedType === 'EXT_ALL' && normalizedIngress === 'proxy' ? FILTER_ALL : parsedType)
     setFulltext(urlFulltext)
@@ -191,7 +191,7 @@ export default function LogsPage() {
       ? undefined
       : filterType,
     requestIngress: ingress !== INGRESS_ALL
-      ? ingress as 'proxy' | 'ext'
+      ? ingress as 'proxy' | 'ext' | 'capture'
       : filterType === 'EXT_ALL'
         ? 'ext'
         : undefined,
@@ -291,7 +291,7 @@ export default function LogsPage() {
         q,
         fulltext,
         ingress: ingress !== INGRESS_ALL
-          ? ingress as 'proxy' | 'ext'
+          ? ingress as 'proxy' | 'ext' | 'capture'
           : filterType === 'EXT_ALL'
             ? 'ext'
             : undefined,
@@ -536,7 +536,8 @@ export default function LogsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={INGRESS_ALL}>{t('logs.ingress.all')}</SelectItem>
-            <SelectItem value="proxy">{t('logs.ingress.proxy')}</SelectItem>
+            <SelectItem value="capture">{t('nav.capture')}</SelectItem>
+<SelectItem value="proxy">{t('logs.ingress.proxy')}</SelectItem>
             <SelectItem value="ext">{t('logs.ingress.ext')}</SelectItem>
           </SelectContent>
         </Select>

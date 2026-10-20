@@ -32,6 +32,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { getConfig, saveConfig, saveBuiltinRules, patchConfig, testUpstream, restoreNetwork, getHealth, getPriceSyncStatus, syncPricesNow, getPriceList, changePassword, type ConfigPatch, type SaveConfigResponse } from '@/api/settings'
+import { processingScope } from '@/lib/processing-target'
 import { AuditSettingsCard } from '@/components/audit/AuditSettingsCard'
 import { useMutation } from '@tanstack/react-query'
 import type { SilencerConfig, UpstreamConfig } from '@/types/api'
@@ -608,9 +609,11 @@ export default function SettingsPage({ embeddedTab }: { embeddedTab?: string } =
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
 
   const save = async (next: Partial<SilencerConfig> | (() => Promise<SaveConfigResponse>), msg?: string) => {
+    const submittedScope = processingScope()
     setSaving(true)
     // 串行执行保存请求；规则开关只提交变化的条目，不携带旧的整表快照。
     const task = saveQueueRef.current.then(async () => {
+      if (processingScope() !== submittedScope) return
       try {
         const r = await (typeof next === 'function' ? next() : saveConfig(next))
         if (!r.ok) {
@@ -622,7 +625,7 @@ export default function SettingsPage({ embeddedTab }: { embeddedTab?: string } =
         }
         if (r.proxy_restarted) toast(t('settings.toast.restarted'))
         else toast(msg || t('settings.toast.saved'))
-        if (r.config) {
+        if (r.config && (submittedScope === 'server' || submittedScope === 'local')) {
           queryClient.setQueryData(['config'], r.config)
         }
         queryClient.invalidateQueries({ queryKey: ['config'] })
@@ -644,9 +647,10 @@ export default function SettingsPage({ embeddedTab }: { embeddedTab?: string } =
    * 避免「一半生效一半没生效」的中间态。返回最后一步的响应（含最新配置）。
    */
   const patchSequence = async (steps: ConfigPatch[]): Promise<SaveConfigResponse> => {
+    const target = processingScope()
     let last: SaveConfigResponse | null = null
     for (const step of steps) {
-      last = await patchConfig(step)
+      last = await patchConfig(step, target)
       if (!last.ok) return last
     }
     if (!last) throw new Error(t('settings.toast.saveFailed'))
@@ -1523,12 +1527,11 @@ export default function SettingsPage({ embeddedTab }: { embeddedTab?: string } =
             <CardContent className="grid gap-3 md:grid-cols-2">
               <div>
                 <Label className="text-xs">{t('settings.advanced.captureMode')}</Label>
-                {/* reverse 模式是核心场景（客户端 base_url 指向本机端口），
-                    锁定 reverse 隐藏选择器，避免误切到 explicit/local（需证书+管理员）
-                    若未来启用这些模式，再恢复选择器 */}
+                {/* Existing reverse entry; global capture has its own setup flow. */}
                 <div className="mt-1 flex h-8 items-center rounded-md border bg-muted/30 px-3 text-xs text-muted-foreground">
                   {t('settings.advanced.captureModeHint')}
                 </div>
+                <a className="mt-1 inline-block text-xs text-primary underline" href="#/capture">{t('nav.capture')}</a>
               </div>
               <div>
                 <Label className="text-xs">{t('settings.advanced.stopMode')}</Label>
