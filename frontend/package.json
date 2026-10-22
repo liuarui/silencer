@@ -2,7 +2,7 @@
   "name": "silencer-frontend",
   "private": true,
   "license": "AGPL-3.0-only",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "test:logs": "node --experimental-strip-types --test tests/log-events.test.mjs tests/privacy.test.mjs",

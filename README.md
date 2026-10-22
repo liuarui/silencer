@@ -1,4 +1,4 @@
-# Silencer 1.1.0
+# Silencer 1.1.1
 
 [English](README_EN.md) · [官网](https://silencer.5970000.xyz/) · [在线演示](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [部署教程](docs/TUTORIAL.md) · [架构](docs/ARCHITECTURE.md) · [性能测试](docs/PERFORMANCE.md)
 
@@ -20,17 +20,17 @@ Silencer 是面向 AI 客户端的隐私脱敏网关。请求转发前，将敏�
 
 ## 快速启动
 
-发布镜像支持 `linux/amd64` 和 `linux/arm64`，`1.1.0` 与 `latest` 会自动选择本机架构：
+发布镜像支持 `linux/amd64` 和 `linux/arm64`，`1.1.1` 与 `latest` 会自动选择本机架构：
 
 ```bash
-docker pull liuarui/silencer:1.1.0
+docker pull liuarui/silencer:1.1.1
 export SILENCER_GATEWAY_TOKEN="$(openssl rand -hex 24)"
 docker run -d --name silencer --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -v silencer_data:/data \
   -e SILENCER_GATEWAY_TOKEN \
   -e SILENCER_CONTROL_CONFIG_FILE=/data/control.json \
-  liuarui/silencer:1.1.0
+  liuarui/silencer:1.1.1
 curl http://127.0.0.1:8080/readyz
 ```
 
@@ -98,7 +98,7 @@ docker build -t silencer:test .
 bash scripts/test-image.sh silencer:test
 ```
 
-见[贡献说明](CONTRIBUTING.md)、[1.1.0 发布说明](docs/releases/1.1.0.md)和[第三方许可](THIRD_PARTY_NOTICES.md)。本项目按 [AGPL-3.0-only](LICENSE) 授权。
+见[贡献说明](CONTRIBUTING.md)、[1.1.1 发布说明](docs/releases/1.1.1.md)和[第三方许可](THIRD_PARTY_NOTICES.md)。本项目按 [AGPL-3.0-only](LICENSE) 授权。
 
 ## Sponsors
 

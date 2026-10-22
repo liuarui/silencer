@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 - 2026-10-21
+
+- Fix ordinary identifiers being mistaken for unresolved placeholders in tool arguments, which could interrupt Hermes and other streamed tool calls.
+- Preserve identifier boundaries across response deltas and check pending candidates at completion or EOF.
+- Retain fail-closed protection for genuine unresolved tool placeholders, including escaped input and snapshots.
+
+See [1.1.1 release notes](docs/releases/1.1.1.md).
+
 ## 1.1.0 - 2026-10-20
 
 - Native capture for Windows x64, macOS Intel/Apple Silicon and Linux x64.

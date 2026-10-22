@@ -298,3 +298,5 @@ scripts/check-image-index.py
 scripts/test-release-pipeline.py
 gateway/internal/gateway/config_permissions_unix_test.go
 gateway/internal/gateway/config_permissions_windows_test.go
+docs/releases/1.1.1.md
+gateway/internal/gateway/protocol_restore_guard_test.go

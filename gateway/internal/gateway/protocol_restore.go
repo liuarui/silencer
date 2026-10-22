@@ -15,9 +15,36 @@ import (
 	"strings"
 )
 
-var protocolPlaceholderLike = regexp.MustCompile(`(?i)(?:\\?\{\s*){0,3}[A-Za-z][A-Za-z0-9_]{0,12}\s*_\s*(?:[0-9a-f]{16}|[bcdfghjkmnpqrstvwxz]{6})\s*(?:\\?\}\s*){0,3}`)
+// Bound padding like the native parser, so a pending identifier and its left
+// boundary always fit in the rolling guard window.
+var protocolPlaceholderLike = regexp.MustCompile(`(?i)((?:\\?\{\s{0,64}){0,3})([A-Za-z0-9_]{1,12}\s{0,64}_\s{0,64}(?:[0-9a-f]{16}|[0-9a-f]{6}|[bcdfghjkmnpqrstvwxz]{6}))`)
 
-func hasUnresolvedPlaceholder(text string) bool { return protocolPlaceholderLike.MatchString(text) }
+func protocolPlaceholderWord(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
+}
+
+func hasUnresolvedPlaceholder(text string) bool { return hasUnresolvedPlaceholderFragment(text, true) }
+
+func hasUnresolvedPlaceholderFragment(text string, final bool) bool {
+	for _, match := range protocolPlaceholderLike.FindAllStringSubmatchIndex(text, -1) {
+		start, end := match[4], match[5]
+		// Match the native restorer's identifier boundaries. A random string
+		// containing a token-shaped substring is not a gateway placeholder.
+		if match[2] == match[3] && start > 0 && protocolPlaceholderWord(text[start-1]) {
+			continue
+		}
+		if end < len(text) && protocolPlaceholderWord(text[end]) {
+			continue
+		}
+		// The next delta may extend this identifier. Completion/EOF must check
+		// it again even when the native restorer has no remaining output.
+		if end == len(text) && !final {
+			continue
+		}
+		return true
+	}
+	return false
+}
 
 func isRestorableContentType(contentType string) bool {
 	return strings.HasPrefix(contentType, "text/") || strings.Contains(contentType, "json") || strings.Contains(contentType, "event-stream")
@@ -161,11 +188,14 @@ func (c *protocolChannel) checkArguments(out []byte, final bool) error {
 	// Check the full fragment plus its prior tail before truncating the tail:
 	// a token can occur near the beginning of a large tool delta.
 	combined := c.argumentGuardTail + decoded
-	if hasUnresolvedPlaceholder(combined) {
+	if hasUnresolvedPlaceholderFragment(combined, final) {
 		return errors.New("unresolved placeholder in tool arguments")
 	}
 	if len(combined) > restoreTokenTailLimit {
-		combined = combined[len(combined)-restoreTokenTailLimit:]
+		// Do not invent a bare identifier boundary at the truncation point.
+		// Complete candidates here were already checked; pending candidates
+		// near the end retain their real predecessor within the window.
+		combined = "_" + combined[len(combined)-restoreTokenTailLimit:]
 	}
 	c.argumentGuardTail = combined
 	return nil
@@ -494,7 +524,7 @@ func (s *protocolRestoreSession) processFrame(ctx context.Context, frame []byte)
 						return nil, err
 					}
 				}
-				c = &protocolChannel{session: session, arguments: slot.arguments, toolInput: customToolInputChannel(slot.channel), argumentGuard: protocolArgumentEscapes{inspection: true}}
+				c = &protocolChannel{session: session, arguments: slot.arguments, toolInput: customToolInputChannel(slot.channel) || protocolToolContentPath(slot.path), argumentGuard: protocolArgumentEscapes{inspection: true}}
 				s.channels[slot.channel] = c
 			}
 			input := text
@@ -530,7 +560,7 @@ func (s *protocolRestoreSession) processFrame(ctx context.Context, frame []byte)
 			return nil, err
 		}
 		// Never turn an unresolved placeholder into a command Hermes can run.
-		if (slot.arguments || customToolInputChannel(slot.channel) || protocolToolContentPath(slot.path)) && hasUnresolvedToolPlaceholder(restored) {
+		if (slot.snapshot || s.kind == "json") && (slot.arguments || customToolInputChannel(slot.channel) || protocolToolContentPath(slot.path)) && hasUnresolvedToolPlaceholder(restored) {
 			return nil, errors.New("unresolved placeholder in tool arguments")
 		}
 		if restored != text {
@@ -723,11 +753,11 @@ func (s *protocolRestoreSession) flush(ctx context.Context, which func(string) b
 		}
 		delete(s.channels, key)
 		s.observe(&c.outputTail, out, true)
-		if len(out) == 0 {
-			continue
-		}
 		if err := c.checkArguments(out, true); err != nil {
 			return nil, err
+		}
+		if len(out) == 0 {
+			continue
 		}
 		obj := cloneProtocolFrame(c.frame)
 		for _, slot := range protocolSlots(protocolFrameObject(obj, c.header)) {

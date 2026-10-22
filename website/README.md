@@ -14,7 +14,7 @@ python3 -m http.server 8081 --bind 127.0.0.1 --directory website/public
 
 ## 启动独立演示实例
 
-演示使用单独的数据卷和管理密码，不挂载生产数据、客户端配置或宿主机代理。以下命令从源码构建，适用于 AMD64、ARM64 原生构建环境。也可以直接使用 Docker Hub 的 `liuarui/silencer:1.1.0`，该标签会自动选择 AMD64 或 ARM64。
+演示使用单独的数据卷和管理密码，不挂载生产数据、客户端配置或宿主机代理。以下命令从源码构建，适用于 AMD64、ARM64 原生构建环境。也可以直接使用 Docker Hub 的 `liuarui/silencer:1.1.1`，该标签会自动选择 AMD64 或 ARM64。
 
 在仓库根目录运行：
 

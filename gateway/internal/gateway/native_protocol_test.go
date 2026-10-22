@@ -752,6 +752,103 @@ func TestNativeUnicodeToolArgumentDeltas(t *testing.T) {
 	}
 }
 
+func TestNativeToolIdentifiersAcrossDeltas(t *testing.T) {
+	engine, err := newNativeEngine(Config{Engine: "cpp", EngineConfig: `{"rules":[{"needle":"198.51.100.7","label":"IP_PUBLIC"}]}`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer engine.(CloseableEngine).Close()
+	token, err := engine.(MaskingEngine).Mask(context.Background(), []byte("198.51.100.7"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, identifier := range []string{
+		"prefixx_bcdfghsuffix",
+		"ordinary_variable_0123456789abcdefZ",
+		"IP_PUBLIC_ffffffffffffffffx",
+		strings.Repeat("x", 300) + "_bcdfghZ",
+	} {
+		args, _ := json.Marshal(map[string]string{"command": "ssh " + string(token) + " " + identifier})
+		want, _ := json.Marshal(map[string]string{"command": "ssh 198.51.100.7 " + identifier})
+		cuts := []int{1, len(args) / 2, len(args) - 1}
+		if start := bytes.Index(args, []byte(identifier)); start >= 0 {
+			cut := start + len(identifier) - 1
+			for _, suffix := range []string{"bcdfgh", "0123456789abcdef", "ffffffffffffffff"} {
+				if suffixStart := strings.Index(identifier, suffix); suffixStart >= 0 {
+					cut = start + suffixStart + len(suffix)
+					break
+				}
+			}
+			cuts = append(cuts, cut)
+		}
+		for _, protocol := range []string{"openai", "anthropic", "responses", "custom", "snapshot"} {
+			uniqueCuts := map[int]bool{}
+			for _, cut := range cuts {
+				if cut < 1 || cut >= len(args) || uniqueCuts[cut] {
+					continue
+				}
+				uniqueCuts[cut] = true
+				s := newProtocolRestoreSession("sse", engine.(StreamingEngine).NewRestoreSession)
+				var wire []byte
+				parts := []string{string(args[:cut]), string(args[cut:])}
+				if protocol == "snapshot" {
+					parts = []string{string(args)}
+				}
+				for _, part := range parts {
+					var obj map[string]any
+					switch protocol {
+					case "openai", "snapshot":
+						container := "delta"
+						if protocol == "snapshot" {
+							container = "message"
+						}
+						obj = map[string]any{"choices": []any{map[string]any{"index": 0, container: map[string]any{"tool_calls": []any{map[string]any{"index": 0, "function": map[string]any{"arguments": part}}}}}}}
+					case "anthropic":
+						obj = map[string]any{"type": "content_block_delta", "index": 0, "delta": map[string]any{"type": "input_json_delta", "partial_json": part}}
+					case "responses":
+						obj = map[string]any{"type": "response.function_call_arguments.delta", "output_index": 0, "delta": part}
+					case "custom":
+						obj = map[string]any{"type": "response.custom_tool_call_input.delta", "output_index": 0, "delta": part}
+					}
+					out, err := s.Push(context.Background(), s.encode(obj, ""))
+					if err != nil {
+						s.Abort()
+						t.Fatalf("%s cut %d rejected ordinary identifier: %v", protocol, cut, err)
+					}
+					wire = append(wire, out...)
+				}
+				out, err := s.Push(context.Background(), []byte("data: [DONE]\n\n"))
+				wire = append(wire, out...)
+				s.Abort()
+				if err != nil {
+					t.Fatalf("%s cut %d completion: %v", protocol, cut, err)
+				}
+				var got strings.Builder
+				for _, line := range strings.Split(string(wire), "\n") {
+					if !strings.HasPrefix(line, "data: {") {
+						continue
+					}
+					obj, err := decodeProtocolJSON([]byte(strings.TrimPrefix(line, "data: ")))
+					if err != nil {
+						t.Fatal(err)
+					}
+					for _, slot := range protocolSlots(obj) {
+						if slot.arguments || customToolInputChannel(slot.channel) {
+							got.WriteString(protocolGet(obj, slot.path).(string))
+						}
+					}
+				}
+				if got.String() != string(want) || !bytes.Contains(wire, []byte("[DONE]")) {
+					t.Fatalf("%s cut %d: got %q, want %q", protocol, cut, got.String(), want)
+				}
+				if protocol == "snapshot" {
+					break
+				}
+			}
+		}
+	}
+}
+
 func TestNativeEscapedWhitespaceToolGuard(t *testing.T) {
 	engine, err := newNativeEngine(Config{Engine: "cpp", EngineConfig: `{"rules":[]}`})
 	if err != nil {

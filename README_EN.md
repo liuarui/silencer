@@ -1,4 +1,4 @@
-# Silencer 1.1.0
+# Silencer 1.1.1
 
 [中文](README.md) · [Website](https://silencer.5970000.xyz/) · [Live demo](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [Deployment](docs/TUTORIAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Benchmarks](docs/PERFORMANCE.md)
 
@@ -20,17 +20,17 @@ See [website/README.md](website/README.md) for the static website source and dep
 
 ## Quick start
 
-Published images support `linux/amd64` and `linux/arm64`. Both `1.1.0` and `latest` automatically select the host architecture:
+Published images support `linux/amd64` and `linux/arm64`. Both `1.1.1` and `latest` automatically select the host architecture:
 
 ```bash
-docker pull liuarui/silencer:1.1.0
+docker pull liuarui/silencer:1.1.1
 export SILENCER_GATEWAY_TOKEN="$(openssl rand -hex 24)"
 docker run -d --name silencer --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -v silencer_data:/data \
   -e SILENCER_GATEWAY_TOKEN \
   -e SILENCER_CONTROL_CONFIG_FILE=/data/control.json \
-  liuarui/silencer:1.1.0
+  liuarui/silencer:1.1.1
 curl http://127.0.0.1:8080/readyz
 ```
 
@@ -98,7 +98,7 @@ docker build -t silencer:test .
 bash scripts/test-image.sh silencer:test
 ```
 
-See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.1.0.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
+See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.1.1.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
 
 ## Sponsors
 
