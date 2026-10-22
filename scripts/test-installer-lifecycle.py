@@ -354,7 +354,9 @@ capture_check_service_owner
                 if list((root/'data/versions').glob('.download.*/SHA256SUMS')): break
                 time.sleep(0.01)
             os.killpg(process.pid, signal.SIGTERM)
-            process.communicate(timeout=5)
+            # macOS Intel CI can take longer to schedule the shell's TERM trap
+            # after the entire installer process group has been signalled.
+            process.communicate(timeout=15)
         finally:
             if process.poll() is None: os.killpg(process.pid, signal.SIGKILL); process.communicate()
         self.assertNotEqual(process.returncode, 0)
