@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2 - 2026-10-22
+
+- Release the browser web-chat extension for ChatGPT, Gemini and DeepSeek text conversations.
+- Make the Docker gateway extension API opt-in by default instead of hard-disabled, with an environment-level hard-disable override.
+- Add protocol v3 durable, browser-install and page-origin-scoped mappings so response restoration survives separate requests without leaking between sites.
+- Flush completed logical text values independently, preventing fragments from unrelated response fields from being joined as a placeholder.
+- Keep the extension source and UI out of the repository; publish a reviewed, reproducibly packaged ZIP as a GitHub Release asset.
+- Update the website, download links, release documentation and version metadata.
+
+See [1.1.2 release notes](docs/releases/1.1.2.md).
+
 ## 1.1.1 - 2026-10-21
 
 - Fix ordinary identifiers being mistaken for unresolved placeholders in tool arguments, which could interrupt Hermes and other streamed tool calls.

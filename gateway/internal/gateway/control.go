@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
@@ -795,7 +796,7 @@ func (s *Server) handleExtensionPing(w http.ResponseWriter, r *http.Request) {
 	s.configMu.RLock()
 	enabled, _ := s.control["ext_bridge_enabled"].(bool)
 	s.configMu.RUnlock()
-	s.writeJSON(w, http.StatusOK, map[string]any{"ok": enabled, "enabled": enabled, "version": releaseVersion, "ext_protocol": 2, "block_when_down": true, "record_events": true})
+	s.writeJSON(w, http.StatusOK, map[string]any{"ok": enabled, "enabled": enabled, "version": releaseVersion, "ext_protocol": 3, "block_when_down": true, "record_events": true})
 }
 
 func (s *Server) handleExtensionRotateToken(w http.ResponseWriter, r *http.Request) {
@@ -2734,6 +2735,9 @@ func (s *Server) handleExtensionMask(w http.ResponseWriter, r *http.Request) {
 		Host   string `json:"host"`
 		URL    string `json:"url"`
 		Method string `json:"method"`
+		// Scope is a random browser-install identity supplied only by the SW.
+		// It is combined with the authenticated token and actual page host.
+		Scope string `json:"scope"`
 	}
 	if !decodeBody(w, r, s.cfg.MaxBodyBytes, &body) {
 		return
@@ -2761,7 +2765,26 @@ func (s *Server) handleExtensionMask(w http.ResponseWriter, r *http.Request) {
 		s.writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "blocking": true, "error": "engine_unavailable"})
 		return
 	}
-	session, sessionErr := streamer.NewMaskingSession(r.Context())
+	var session MaskingSession
+	var sessionErr error
+	if body.Scope != "" {
+		identity, err := hex.DecodeString(body.Scope)
+		if err != nil || len(identity) != 16 || strings.TrimSpace(body.Host) == "" {
+			s.writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "blocking": true, "error": "invalid_browser_scope"})
+			return
+		}
+		durable, ok := engine.(DurableMaskingEngine)
+		if !ok || s.store == nil {
+			s.writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "blocking": true, "error": "durable_browser_mapping_unavailable"})
+			return
+		}
+		scope := sha256.Sum256([]byte("browser-v1\x00" + extensionTokenFromRequest(r) + "\x00" + strings.ToLower(body.Host) + "\x00" + body.Scope))
+		// Restore RPCs outlive this mask HTTP request. Keep its mapping authority
+		// independent of request cancellation; bound each SQL callback instead.
+		session, sessionErr = durable.NewDurableMaskingSession(context.WithoutCancel(r.Context()), hex.EncodeToString(scope[:]), browserMappingStore{s.store})
+	} else {
+		session, sessionErr = streamer.NewMaskingSession(r.Context())
+	}
 	if sessionErr != nil {
 		s.writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "blocking": true, "error": "engine_unavailable"})
 		return
@@ -2785,7 +2808,7 @@ func (s *Server) handleExtensionMask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	masked := append(maskedHead, maskedTail...)
-	if record == nil && bytes.Equal(masked, []byte(body.Text)) {
+	if body.Scope == "" && record == nil && bytes.Equal(masked, []byte(body.Text)) {
 		contextual.Release()
 		s.writeJSON(w, http.StatusOK, map[string]any{"ok": true, "text": string(masked), "sid": "", "request_id": ""})
 		return
@@ -2872,8 +2895,13 @@ func (s *Server) handleExtensionRestore(w http.ResponseWriter, r *http.Request) 
 		ContentType    string `json:"content_type"`
 		Outcome        string `json:"outcome"`
 		ResponseStatus int    `json:"response_status"`
+		ValueComplete  bool   `json:"value_complete"`
 	}
 	if !decodeBody(w, r, s.cfg.MaxBodyBytes, &body) {
+		return
+	}
+	if body.ValueComplete && (body.Final || body.AwaitAck || body.ContentType != "text/plain") {
+		s.writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "invalid_value_completion"})
 		return
 	}
 	streamID := strings.TrimSpace(body.StreamID)
@@ -2931,6 +2959,30 @@ func (s *Server) handleExtensionRestore(w http.ResponseWriter, r *http.Request) 
 		if aborter, ok := entry.session.(AbortableRestoreSession); ok {
 			aborter.Abort()
 		}
+	} else if body.ValueComplete {
+		// A codec has already assembled this logical text value. Flush an
+		// independent native channel before JSON re-encoding it; native Push
+		// may retain a suffix even when the placeholder itself is complete.
+		var valueSession RestoreSession
+		valueSession, err = entry.maskOwner.NewRestoreSession(r.Context())
+		if err == nil {
+			if configurable, ok := valueSession.(ConfigurableRestoreSession); ok {
+				err = configurable.SetJSONEscape(r.Context(), false)
+			}
+		}
+		if err == nil {
+			out, err = valueSession.Push(r.Context(), []byte(body.Text))
+		}
+		if err == nil {
+			var tail []byte
+			tail, err = valueSession.Finish(r.Context())
+			out = append(out, tail...)
+		}
+		if err != nil && valueSession != nil {
+			if aborter, ok := valueSession.(AbortableRestoreSession); ok {
+				aborter.Abort()
+			}
+		}
 	} else {
 		if configurable, ok := entry.session.(ConfigurableRestoreSession); ok {
 			ct := strings.ToLower(body.ContentType)
@@ -2957,7 +3009,13 @@ func (s *Server) handleExtensionRestore(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	if !wasFinished {
+		if body.ValueComplete {
+			entry.restoreInputTail, entry.restoreOutputTail = "", ""
+		}
 		entry.observeResponse([]byte(body.Text), out)
+		if body.ValueComplete {
+			entry.restoreInputTail, entry.restoreOutputTail = "", ""
+		}
 	}
 	terminal := (body.Final && (!body.AwaitAck || outcome != "completed")) || err != nil
 	if terminal {

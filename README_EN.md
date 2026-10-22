@@ -1,4 +1,4 @@
-# Silencer 1.1.1
+# Silencer 1.1.2
 
 [中文](README.md) · [Website](https://silencer.5970000.xyz/) · [Live demo](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [Deployment](docs/TUTORIAL.md) · [Architecture](docs/ARCHITECTURE.md) · [Benchmarks](docs/PERFORMANCE.md)
 
@@ -14,23 +14,23 @@ Silencer is a privacy gateway for AI clients. It replaces sensitive request text
 - Dangerous tool-call detection with log-only, confirmation rewrite and block modes; log-only is the default.
 - SQLite or MySQL storage, configurable log retention, Prometheus and optional OpenTelemetry.
 
-**The browser extension is deferred.** Plugin source, extension-only pages and installation guides are excluded from this repository. Release images disable extension APIs and downloads.
+**The browser extension is distributed as a separate ZIP asset, not in the repository source.** This release supports text conversations on ChatGPT, Gemini and DeepSeek. File uploads, images/audio, WebSocket and other sites are outside the current coverage.
 
 See [website/README.md](website/README.md) for the static website source and deployment of a separate demo instance. The public demo uses a shared account; use synthetic data only. Its Nginx configuration disables password changes.
 
 ## Quick start
 
-Published images support `linux/amd64` and `linux/arm64`. Both `1.1.1` and `latest` automatically select the host architecture:
+Published images support `linux/amd64` and `linux/arm64`. Both `1.1.2` and `latest` automatically select the host architecture:
 
 ```bash
-docker pull liuarui/silencer:1.1.1
+docker pull liuarui/silencer:1.1.2
 export SILENCER_GATEWAY_TOKEN="$(openssl rand -hex 24)"
 docker run -d --name silencer --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -v silencer_data:/data \
   -e SILENCER_GATEWAY_TOKEN \
   -e SILENCER_CONTROL_CONFIG_FILE=/data/control.json \
-  liuarui/silencer:1.1.1
+  liuarui/silencer:1.1.2
 curl http://127.0.0.1:8080/readyz
 ```
 
@@ -57,6 +57,10 @@ Open **Capture mode** in the existing console to install the local background co
 Version 1.1 provides Windows 10/11 x64, macOS 14+ (Intel / Apple Silicon), and Ubuntu 24.04 x64 (kernel 6.8+) bundles. The console guides installation, permission and certificate checks, repair, updates and removal.
 
 Get bundles from [GitHub Releases](https://github.com/liuarui/silencer/releases/latest). Docker runs the server; native capture runs on the AI client's computer. macOS capture and Clash TUN have been exercised locally. Windows/Linux system authorization and proxy coexistence still require field validation. See [capture requirements and protection limits](docs/CAPTURE.md).
+
+### Browser web-chat extension
+
+Download [Silencer Web Chat 1.1.2](https://github.com/liuarui/silencer/releases/download/v1.1.2/silencer-webchat-1.1.2.zip), extract it, open `chrome://extensions` in Chrome/Chromium, enable Developer mode and choose **Load unpacked**. In the extension settings, enter your Silencer gateway URL and extension token, then grant access to the sites you use. ChatGPT, Gemini and DeepSeek text conversations are verified. Images, audio, file uploads, WebSocket and other sites are not covered. Official Docker images keep the bridge off until an administrator enables it in gateway settings; set `SILENCER_EXTENSION_DISABLED=1` to hard-disable the extension API.
 
 ## Connect a client
 
@@ -98,7 +102,7 @@ docker build -t silencer:test .
 bash scripts/test-image.sh silencer:test
 ```
 
-See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.1.1.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
+See [contributing](CONTRIBUTING.md), [release notes](docs/releases/1.1.2.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Licensed under [AGPL-3.0-only](LICENSE).
 
 ## Sponsors
 

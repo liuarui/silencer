@@ -200,11 +200,12 @@ For blue-green deployments, run the two candidates against shared MySQL and use
 atomically updates the Nginx upstream include before an optional reload.
 
 
-Browser extension release is paused. Production images set
-`SILENCER_EXTENSION_DISABLED=1`: extension APIs/downloads are unavailable and
-configuration edits cannot re-enable the bridge. Browser extension source and
-installation guides are excluded from the public release. The gateway proxy
-is the supported data path for this release.
+The browser extension is distributed as a separate GitHub Release ZIP; its
+source and dedicated UI remain outside the Git repository. Production images
+expose the extension API, but the bridge is disabled in the default control
+configuration and must be explicitly enabled by an administrator. Operators can
+force-disable the API with `SILENCER_EXTENSION_DISABLED=1`; in that mode,
+configuration edits cannot re-enable it.
 JSON masking scans decoded string values and numeric scalars; matched numeric
 scalars become quoted placeholders, while untouched bytes and object keys stay
 unchanged. An early upstream response seals the masking session without emitting

@@ -12,6 +12,23 @@ import (
 
 type extensionLogError string
 
+// A browser response arrives through later HTTP calls. Its mapping authority
+// cannot retain the already-cancelled mask request context. Each lookup/write
+// still has its own bounded database operation.
+type browserMappingStore struct{ DurableMappingStore }
+
+func (s browserMappingStore) IssueEntityMapping(ctx context.Context, scope, original, label string) (storage.EntityMapping, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	return s.DurableMappingStore.IssueEntityMapping(ctx, scope, original, label)
+}
+
+func (s browserMappingStore) ResolveEntityMapping(ctx context.Context, scope, token string) (storage.EntityMapping, bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	return s.DurableMappingStore.ResolveEntityMapping(ctx, scope, token)
+}
+
 func (e extensionLogError) Error() string { return string(e) }
 
 // Browser bodies are the text sent through the bridge, not a capture of the

@@ -33,7 +33,6 @@ ENV SILENCER_GATEWAY_ADDR=0.0.0.0:8080 \
     LD_LIBRARY_PATH=/usr/local/lib \
     SILENCER_WEB_DIST=/app/web_dist \
     SILENCER_ENGINE=cpp \
-    SILENCER_EXTENSION_DISABLED=1 \
     SILENCER_MAX_BODY_BYTES=67108864
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl libstdc++6 libpcre2-8-0 \
     && rm -rf /var/lib/apt/lists/* \

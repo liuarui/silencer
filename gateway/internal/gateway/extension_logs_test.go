@@ -62,6 +62,55 @@ func ledgerMask(t *testing.T, s *Server, text string) map[string]any {
 	return masked
 }
 
+func TestExtensionValueCompletionCannotBypassFinalAcknowledgement(t *testing.T) {
+	s, _ := extensionLedgerServer(t, contextualTestEngine{})
+	masked := ledgerMask(t, s, "alice@example.com")
+	for _, flags := range []map[string]any{{"final": true}, {"await_ack": true}, {"content_type": "application/json"}} {
+		body := map[string]any{"sid": masked["sid"], "stream_id": "values", "text": "ignored", "value_complete": true, "content_type": "text/plain"}
+		for key, value := range flags {
+			body[key] = value
+		}
+		code, reply := extensionLedgerCall(t, s, "POST", "/api/ext/restore", body)
+		if code != 400 || reply["error"] != "invalid_value_completion" {
+			t.Fatalf("invalid value/terminal combination accepted: status=%d", code)
+		}
+	}
+	code, _ := extensionLedgerCall(t, s, "POST", "/api/ext/restore", map[string]any{
+		"sid": masked["sid"], "stream_id": "values", "text": "done", "final": true,
+	})
+	if code != 200 {
+		t.Fatal("rejected value completion incorrectly consumed the live session")
+	}
+}
+
+func TestExtensionLedgerDoesNotJoinIndependentTextValues(t *testing.T) {
+	s, _ := extensionLedgerServer(t, contextualTestEngine{})
+	masked := ledgerMask(t, s, "alice@example.com")
+	token := "{{EMAIL_0000000000000001}}"
+	// These are three distinct protocol fields, not consecutive stream chunks.
+	// The first two fragments must never become a phantom unresolved token.
+	for _, text := range []string{token[:10], token[10:], token} {
+		code, _ := extensionLedgerCall(t, s, "POST", "/api/ext/restore", map[string]any{
+			"sid": masked["sid"], "stream_id": "values", "text": text,
+			"content_type": "text/plain", "value_complete": true,
+		})
+		if code != 200 {
+			t.Fatal("independent value restoration failed", code)
+		}
+	}
+	code, _ := extensionLedgerCall(t, s, "POST", "/api/ext/restore", map[string]any{
+		"sid": masked["sid"], "stream_id": "values", "text": "", "final": true,
+	})
+	if code != 200 {
+		t.Fatal("value stream finalization failed", code)
+	}
+	_, response := extensionLedgerCall(t, s, "GET", "/api/requests/"+masked["request_id"].(string), nil)
+	detail := response["request"].(map[string]any)
+	if detail["restored_count"] != float64(1) || detail["restore_status"] != "restored" {
+		t.Fatal("independent fields produced phantom token evidence", detail)
+	}
+}
+
 func TestExtensionLedgerCapturesBodiesAndLinksEvents(t *testing.T) {
 	s, store := extensionLedgerServer(t, contextualTestEngine{})
 	raw := strings.Repeat("message ", 300) + "alice@example.com"

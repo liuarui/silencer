@@ -1,4 +1,4 @@
-# Silencer 1.1.1
+# Silencer 1.1.2
 
 [English](README_EN.md) · [官网](https://silencer.5970000.xyz/) · [在线演示](https://silencer.5970000.xyz/demo/) · [Docker Hub](https://hub.docker.com/r/liuarui/silencer) · [部署教程](docs/TUTORIAL.md) · [架构](docs/ARCHITECTURE.md) · [性能测试](docs/PERFORMANCE.md)
 
@@ -14,23 +14,23 @@ Silencer 是面向 AI 客户端的隐私脱敏网关。请求转发前，将敏�
 - 危险工具调用检测：仅记录、覆写为确认提示、阻断。默认仅记录。
 - SQLite 或 MySQL 存储、日志保留设置、Prometheus 指标和可选 OpenTelemetry。
 
-**浏览器扩展暂不发布。** 插件源码、扩展专用页面和安装文档不包含在本仓库；正式镜像关闭扩展接口及下载。
+**浏览器扩展以独立 ZIP 附件发布，不包含在仓库源码中。** 当前支持 ChatGPT、Gemini、DeepSeek 网页文字对话，文件上传、图片/语音、WebSocket 及其他站点暂不在覆盖范围。
 
 官网静态源码及独立演示实例的部署方式见 [website/README.md](website/README.md)。公共演示账号用于体验，请勿提交真实凭据或个人数据；演示站点在 Nginx 层禁用修改密码接口。
 
 ## 快速启动
 
-发布镜像支持 `linux/amd64` 和 `linux/arm64`，`1.1.1` 与 `latest` 会自动选择本机架构：
+发布镜像支持 `linux/amd64` 和 `linux/arm64`，`1.1.2` 与 `latest` 会自动选择本机架构：
 
 ```bash
-docker pull liuarui/silencer:1.1.1
+docker pull liuarui/silencer:1.1.2
 export SILENCER_GATEWAY_TOKEN="$(openssl rand -hex 24)"
 docker run -d --name silencer --restart unless-stopped \
   -p 127.0.0.1:8080:8080 \
   -v silencer_data:/data \
   -e SILENCER_GATEWAY_TOKEN \
   -e SILENCER_CONTROL_CONFIG_FILE=/data/control.json \
-  liuarui/silencer:1.1.1
+  liuarui/silencer:1.1.2
 curl http://127.0.0.1:8080/readyz
 ```
 
@@ -54,9 +54,13 @@ docker compose -f docker-compose.mysql.yml up -d --build
 
 网页侧栏提供捕获模式安装向导，支持本地处理（默认）或通过 HTTPS 交给指定 Silencer 服务器处理。捕获始终需要本机后台组件；服务器可提供安装引导和远程处理，不会直接接管另一台电脑的网络。
 
-1.1 提供 Windows 10/11 x64、macOS 14+（Intel / Apple Silicon）、Ubuntu 24.04 x64（内核 6.8+）安装包。网页按系统提供脚本，逐步检查组件、权限、证书与处理链路，并提供修复、更新和卸载引导。客户端沿用原地址和 Key。
+1.1.2 提供 Windows 10/11 x64、macOS 14+（Intel / Apple Silicon）、Ubuntu 24.04 x64（内核 6.8+）安装包。网页按系统提供脚本，逐步检查组件、权限、证书与处理链路，并提供修复、更新和卸载引导。客户端沿用原地址和 Key。
 
 从 [GitHub Release](https://github.com/liuarui/silencer/releases/latest) 下载组件。Docker 负责服务器部署；捕获组件安装在实际运行 AI 客户端的电脑上。macOS 已完成本地捕获与 Clash TUN 联调；Windows/Linux 的系统授权、代理共存仍需在各自实机核验。系统要求与保护边界见 [捕获模式说明](docs/CAPTURE.md)。
+
+### 浏览器网页对话扩展
+
+下载 [Silencer Web Chat 1.1.2](https://github.com/liuarui/silencer/releases/download/v1.1.2/silencer-webchat-1.1.2.zip)，解压后打开 Chrome/Chromium 的 `chrome://extensions`，启用“开发者模式”并选择“加载已解压的扩展程序”。在扩展设置中填写 Silencer 网关地址和扩展令牌，并按提示授权站点。当前已验证 ChatGPT、Gemini 和 DeepSeek 的文字对话；图片、语音、文件上传、WebSocket 及其他站点暂不支持。官方 Docker 镜像默认关闭扩展联动，需要管理员在网关设置中显式启用；设置 `SILENCER_EXTENSION_DISABLED=1` 可强制关闭扩展 API。
 
 ## 接入客户端
 
@@ -98,7 +102,7 @@ docker build -t silencer:test .
 bash scripts/test-image.sh silencer:test
 ```
 
-见[贡献说明](CONTRIBUTING.md)、[1.1.1 发布说明](docs/releases/1.1.1.md)和[第三方许可](THIRD_PARTY_NOTICES.md)。本项目按 [AGPL-3.0-only](LICENSE) 授权。
+见[贡献说明](CONTRIBUTING.md)、[1.1.2 发布说明](docs/releases/1.1.2.md)和[第三方许可](THIRD_PARTY_NOTICES.md)。本项目按 [AGPL-3.0-only](LICENSE) 授权。
 
 ## Sponsors
 

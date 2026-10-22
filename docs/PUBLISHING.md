@@ -26,8 +26,20 @@ Update release text around them without deleting or replacing sponsor content.
 4. Tag the verified commit `v<version>` and push that exact tag. The release workflow
    builds native packages, verifies each Docker platform before pushing candidates,
    combines the verified digests, checks published manifests and publishes assets.
-5. Verify GitHub Release assets, installation manifest and Docker tags. Never move
+5. For releases that include the browser extension, build its independent ZIP from the
+   ignored local `extension/` source with `python3 scripts/assemble-extension-release.py
+   --version <version>`. Review the archive contents and checksum, then attach both files
+   to the already-published GitHub Release with `gh release upload v<version> <zip>
+   <zip>.sha256`. The extension source stays out of Git and CI; do not add it to the
+   public-source allowlist or Docker build context.
+6. Verify GitHub Release assets, installation manifest and Docker tags. Never move
    an existing version tag to hide a failed release; fix the issue explicitly.
+
+The extension packager accepts only an explicit file allowlist, validates the manifest
+version and supported-site lists, excludes tests and development bypasses, and produces
+a stable ZIP plus SHA-256 checksum. If the local extension source is unavailable, stop
+and restore it from the approved local backup; do not substitute a stale or unreviewed
+archive.
 
 Docker Hub CI uses repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
 Use a dedicated access token with read/write access, never an account password in
@@ -36,8 +48,10 @@ workflow source. GitHub Release creation uses `GITHUB_TOKEN` with job-scoped
 or publish artifacts as releases.
 
 Images must contain both `linux/amd64` and `linux/arm64`. Each native runner checks
-readiness, real C++ masking, persisted settings/password and disabled extension
-endpoints before promotion. MySQL checks use an isolated disposable service.
+readiness, real C++ masking, persisted settings/password and the extension hard-disable
+switch before promotion. Image smoke checks that the bridge is off by default and
+rejects unauthenticated extension requests. MySQL checks use an isolated disposable
+service.
 
 Native capture packages cover Windows x64, Linux x64 and macOS Intel/Apple Silicon.
 Build/smoke checks do not replace system-permission, UAC/eBPF, certificate-trust and
