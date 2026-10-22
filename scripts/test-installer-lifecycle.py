@@ -347,18 +347,33 @@ capture_check_service_owner
         _, archive = self.release(root, 'next')
         archive.unlink()
         os.mkfifo(archive)
-        process = subprocess.Popen(['/bin/bash', str(INSTALLER), '--sandbox', str(root)], env=self.environment(root), stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+        archive_started = root/'archive-copy-started'
+        copy = root/'blocked-bin/cp'
+        copy.write_text('#!/bin/sh\nif [ "$1" = "$SILENCER_TEST_ARCHIVE_SOURCE" ]; then : > "$SILENCER_TEST_ARCHIVE_STARTED"; exec /bin/cat "$1" > "$2"; fi\nexec /bin/cp "$@"\n')
+        copy.chmod(0o755)
+        env = self.environment(root)
+        env['SILENCER_TEST_ARCHIVE_SOURCE'] = str(archive)
+        env['SILENCER_TEST_ARCHIVE_STARTED'] = str(archive_started)
+        process = subprocess.Popen(['/bin/bash', str(INSTALLER), '--sandbox', str(root)], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         try:
-            deadline = time.monotonic()+3
+            download_started = root/'data/versions'
+            deadline = time.monotonic()+15
             while time.monotonic() < deadline:
-                if list((root/'data/versions').glob('.download.*/SHA256SUMS')): break
+                if archive_started.exists(): break
+                if process.poll() is not None: break
                 time.sleep(0.01)
+            self.assertTrue(archive_started.exists(), 'installer did not begin downloading the release archive')
+            self.assertIsNone(process.poll(), 'installer exited before the archive download was interrupted')
             os.killpg(process.pid, signal.SIGTERM)
-            # macOS Intel CI can take longer to schedule the shell's TERM trap
-            # after the entire installer process group has been signalled.
-            process.communicate(timeout=15)
+            process.wait(timeout=15)
         finally:
-            if process.poll() is None: os.killpg(process.pid, signal.SIGKILL); process.communicate()
+            # Remove any remaining download helper even when the installer
+            # shell has already exited.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            if process.poll() is None: process.wait()
         self.assertNotEqual(process.returncode, 0)
         self.assertEqual((root/'data/current').read_text().strip(), previous)
         self.assertEqual(list((root/'data/versions').glob('.download.*')), [])
