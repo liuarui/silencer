@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<!--
+  Silencer Browser Bridge — 弹出面板
+  只展示**元数据**：状态、计数、path、action、status。
+  永不展示 body / 占位符 / 原文 / 响应文本。
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Silencer</title>
+  <style>
+    :root {
+      /* 设计 token 与客户端 frontend/src/index.css 对齐（同源色相与圆角），
+         避免扩展与面板两套观感。改色时请两边一起改。 */
+      --bg: #f5f7fb;
+      --bg-grad: linear-gradient(160deg, #eef2fb 0%, #f7f5fd 45%, #f1f8f6 100%);
+      --card: rgba(255, 255, 255, 0.86);
+      --bd: #e2e7f1;
+      --bd-soft: #eef1f7;
+      --fg: #1b2333;
+      --fg2: #6a7386;
+      --primary: #2f5fe0;
+      --primary-h: #2450c8;
+      --primary-fg: #f8fafc;
+      --ok: #17803d;
+      --ok-bd: #bfe3cb;
+      --ok-bg: #eefaf1;
+      --warn: #b45309;
+      --warn-bd: #f3d9a4;
+      --warn-bg: #fdf7ea;
+      --bad: #b91c1c;
+      --bad-bd: #f2c4c4;
+      --bad-bg: #fdeeee;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 2px rgba(24, 39, 75, 0.04), 0 4px 14px rgba(24, 39, 75, 0.05);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1218;
+        --bg-grad: linear-gradient(160deg, #131826 0%, #14131f 50%, #101a1a 100%);
+        --card: rgba(26, 31, 43, 0.72);
+        --bd: #2a3142;
+        --bd-soft: #232937;
+        --fg: #e8ecf4;
+        --fg2: #939cb0;
+        --primary: #5b8cf7;
+        --primary-h: #6f9bff;
+        --primary-fg: #0c1220;
+        --ok: #4ade80;
+        --ok-bd: #1f5136;
+        --ok-bg: #10241a;
+        --warn: #fbbf24;
+        --warn-bd: #5a441a;
+        --warn-bg: #2a2110;
+        --bad: #f87171;
+        --bad-bd: #5c2626;
+        --bad-bg: #2a1414;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.28);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      width: 390px; margin: 0; padding: 12px;
+      font: 13px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+      background: var(--bg-grad) fixed; color: var(--fg);
+      -webkit-font-smoothing: antialiased;
+    }
+    .head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fg2); flex: none; }
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+    .dot.bad { background: var(--bad); }
+    .status-text { font-weight: 600; flex: 1; }
+    .status-detail { color: var(--fg2); font-size: 11px; }
+    .box {
+      border: 1px solid var(--bd); border-radius: var(--radius);
+      background: var(--card); box-shadow: var(--shadow);
+      padding: 10px 12px; margin-bottom: 10px;
+    }
+    .kv { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .kv + .kv { margin-top: 4px; }
+    .kv .k { color: var(--fg2); }
+    .kv .v { font-family: ui-monospace, Consolas, monospace; }
+    h3 {
+      font-size: 12px; margin: 0 0 7px; color: var(--fg2);
+      display: flex; align-items: center; gap: 6px;
+    }
+    h3 .spacer { flex: 1; }
+    h3 button { font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th {
+      text-align: left; color: var(--fg2); font-weight: 500;
+      border-bottom: 1px solid var(--bd); padding: 3px 4px; white-space: nowrap;
+    }
+    td { padding: 3px 4px; border-bottom: 1px dashed var(--bd-soft); }
+    td.mono { font-family: ui-monospace, Consolas, monospace; }
+    .empty { color: var(--fg2); font-size: 11px; padding: 4px 0; }
+    .tag { font-size: 10px; padding: 0 5px; border-radius: 999px; border: 1px solid var(--bd); color: var(--fg2); }
+    .tag.ok { color: var(--ok); border-color: var(--ok-bd); background: var(--ok-bg); }
+    .tag.warn { color: var(--warn); border-color: var(--warn-bd); background: var(--warn-bg); }
+    .tag.bad { color: var(--bad); border-color: var(--bad-bd); background: var(--bad-bg); }
+    .scroll { max-height: 176px; overflow: auto; }
+    ul.paths { margin: 0; padding-left: 16px; font-size: 11px; color: var(--fg2); }
+    ul.paths li { font-family: ui-monospace, Consolas, monospace; }
+    footer { display: flex; gap: 8px; margin-top: 10px; }
+    button {
+      flex: 1; padding: 7px 12px; border: 1px solid var(--bd); border-radius: var(--radius-sm);
+      background: var(--card); color: var(--fg); font: inherit; cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    button:hover { border-color: var(--primary); color: var(--primary); }
+    button.primary {
+      background: var(--primary); border-color: var(--primary);
+      color: var(--primary-fg); font-weight: 600;
+    }
+    button.primary:hover { background: var(--primary-h); border-color: var(--primary-h); color: var(--primary-fg); }
+    .box.guide { border-color: var(--warn-bd); background: var(--warn-bg); }
+    .guide-title { font-weight: 600; font-size: 12px; color: var(--warn); }
+    .guide-body { font-size: 11px; color: var(--fg2); margin: 4px 0 6px; }
+    .guide-link { font-size: 12px; color: var(--primary); }
+    .box.attach { border-color: var(--warn-bd); background: var(--warn-bg); }
+    .attach-text { font-size: 11px; color: var(--warn); }
+    /* 协议不匹配告警：与「附件不脱敏」同为警告级，共用 warn 色，但单独一类便于以后区分 */
+    .box.proto { border-color: var(--warn-bd); background: var(--warn-bg); }
+    .proto-text { font-size: 11px; color: var(--warn); }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <span id="dot" class="dot"></span>
+    <span id="statusText" class="status-text">…</span>
+    <span id="statusDetail" class="status-detail"></span>
+  </div>
+
+  <!-- 引擎不在时的引导：扩展不能独立工作，必须明说去哪装，不能默默什么都不做 -->
+  <div class="box guide" id="guideBox" hidden>
+    <div id="guideTitle" class="guide-title"></div>
+    <div id="guideBody" class="guide-body"></div>
+  </div>
+
+  <div class="box">
+    <div class="kv"><span class="k" data-i18n="kPage"></span><span class="v" id="pageHost">—</span></div>
+    <div class="kv"><span class="k" data-i18n="kActive"></span><span class="v" id="pageActive">—</span></div>
+    <div class="kv"><span class="k" data-i18n="kToday"></span><span class="v" id="today">—</span></div>
+    <div class="kv"><span class="k" data-i18n="kEngine"></span><span class="v" id="engineStats">—</span></div>
+  </div>
+
+  <div class="box">
+    <h3>
+      <span id="recentTitle" data-i18n="recentTitle"></span>
+      <span class="spacer"></span>
+      <button id="scopeBtn" type="button" style="flex:none"></button>
+    </h3>
+    <div class="scroll" id="recentWrap"></div>
+  </div>
+
+  <div class="box" id="unmatchedBox" hidden>
+    <h3><span data-i18n="unmatchedTitle"></span></h3>
+    <ul class="paths" id="unmatchedList"></ul>
+  </div>
+
+  <!-- 协议不匹配：客户端改了 /api/ext/* 契约而扩展没跟着更新时，脱敏语义可能已经不对。
+       必须显式报出来——否则用户只看到「怎么不脱敏了」，页面上毫无异常，无从归因。 -->
+  <div class="box proto" id="protoBox" hidden>
+    <div id="protoText" class="proto-text"></div>
+  </div>
+
+  <footer>
+    <button id="refreshBtn" type="button" data-i18n="refreshBtn"></button>
+    <button id="optionsBtn" type="button" class="primary" data-i18n="optionsBtn"></button>
+  </footer>
+
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

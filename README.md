@@ -14,7 +14,7 @@ Silencer 是面向 AI 客户端的隐私脱敏网关。请求转发前，将敏�
 - 危险工具调用检测：仅记录、覆写为确认提示、阻断。默认仅记录。
 - SQLite 或 MySQL 存储、日志保留设置、Prometheus 指标和可选 OpenTelemetry。
 
-**浏览器扩展以独立 ZIP 附件发布，不包含在仓库源码中。** 当前支持 ChatGPT、Gemini、DeepSeek 网页文字对话，文件上传、图片/语音、WebSocket 及其他站点暂不在覆盖范围。
+**浏览器扩展源码位于 [`extension/`](https://github.com/liuarui/silencer/tree/v1.1.2/extension)，并以独立 ZIP 附件发布。** 当前支持 ChatGPT、Gemini、DeepSeek 网页文字对话，文件上传、图片/语音、WebSocket 及其他站点暂不在覆盖范围。
 
 官网静态源码及独立演示实例的部署方式见 [website/README.md](website/README.md)。公共演示账号用于体验，请勿提交真实凭据或个人数据；演示站点在 Nginx 层禁用修改密码接口。
 
@@ -60,7 +60,7 @@ docker compose -f docker-compose.mysql.yml up -d --build
 
 ### 浏览器网页对话扩展
 
-下载 [Silencer Web Chat 1.1.2](https://github.com/liuarui/silencer/releases/download/v1.1.2/silencer-webchat-1.1.2.zip)，解压后打开 Chrome/Chromium 的 `chrome://extensions`，启用“开发者模式”并选择“加载已解压的扩展程序”。在扩展设置中填写 Silencer 网关地址和扩展令牌，并按提示授权站点。当前已验证 ChatGPT、Gemini 和 DeepSeek 的文字对话；图片、语音、文件上传、WebSocket 及其他站点暂不支持。官方 Docker 镜像默认关闭扩展联动，需要管理员在网关设置中显式启用；设置 `SILENCER_EXTENSION_DISABLED=1` 可强制关闭扩展 API。
+下载 [Silencer Web Chat 1.1.2](https://github.com/liuarui/silencer/releases/download/v1.1.2/silencer-webchat-1.1.2.zip)，也可查看 [扩展源码](https://github.com/liuarui/silencer/tree/v1.1.2/extension)。解压后打开 Chrome/Chromium 的 `chrome://extensions`，启用“开发者模式”并选择“加载已解压的扩展程序”。在扩展设置中填写 Silencer 网关地址和扩展令牌，并按提示授权站点。当前已验证 ChatGPT、Gemini 和 DeepSeek 的文字对话；图片、语音、文件上传、WebSocket 及其他站点暂不支持。官方 Docker 镜像默认关闭扩展联动，需要管理员在网关设置中显式启用；设置 `SILENCER_EXTENSION_DISABLED=1` 可强制关闭扩展 API。
 
 ## 接入客户端
 

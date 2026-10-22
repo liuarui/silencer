@@ -77,7 +77,12 @@ jobs:
           pattern: image-digest-*
           path: image-digests
           merge-multiple: true
-      - run: python3 scripts/assemble-release.py artifacts release
+      - name: Assemble native and browser extension assets
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          python3 scripts/assemble-release.py artifacts release
+          python3 scripts/assemble-extension-release.py --version "$VERSION" --output "release/silencer-webchat-$VERSION.zip"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:

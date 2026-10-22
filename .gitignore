@@ -67,10 +67,9 @@ Thumbs.db
 **/__pycache__/
 native-release/
 
-# Local-only source, operational records and credentials stay in this checkout.
+# Private operational records and credentials stay in this checkout.
 .private/
 .public-export.json
-extension/
 frontend/src/private/
 frontend/src/api/ext.ts
 frontend/src/components/settings/ExtBridgeCard.tsx
@@ -82,8 +81,6 @@ docs/INCIDENT*.md
 docs/DEPLOYMENT*.md
 docs/AUDIT*.md
 docs/RELEASE_1.0.0.md
-scripts/check-extension.mjs
-scripts/test-extension-*.mjs
 ai-coding/
 .turbo/
 .claude/

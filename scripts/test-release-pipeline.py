@@ -20,6 +20,13 @@ images = module('check-image-index')
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_release_workflow_packages_and_publishes_extension_asset(self):
+        workflow = Path(__file__).resolve().parents[1]/'.github/workflows/release.yml'
+        source = workflow.read_text(encoding='utf-8')
+        self.assertIn('scripts/assemble-extension-release.py --version "$VERSION"', source)
+        self.assertIn('"release/silencer-webchat-$VERSION.zip"', source)
+        self.assertIn('gh release create "$TAG" release/*', source)
+
     def test_native_missing_and_tampered(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

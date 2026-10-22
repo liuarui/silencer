@@ -14,7 +14,7 @@ Silencer is a privacy gateway for AI clients. It replaces sensitive request text
 - Dangerous tool-call detection with log-only, confirmation rewrite and block modes; log-only is the default.
 - SQLite or MySQL storage, configurable log retention, Prometheus and optional OpenTelemetry.
 
-**The browser extension is distributed as a separate ZIP asset, not in the repository source.** This release supports text conversations on ChatGPT, Gemini and DeepSeek. File uploads, images/audio, WebSocket and other sites are outside the current coverage.
+**The browser extension source is published in [`extension/`](https://github.com/liuarui/silencer/tree/v1.1.2/extension) and distributed as a separate ZIP asset.** This release supports text conversations on ChatGPT, Gemini and DeepSeek. File uploads, images/audio, WebSocket and other sites are outside the current coverage.
 
 See [website/README.md](website/README.md) for the static website source and deployment of a separate demo instance. The public demo uses a shared account; use synthetic data only. Its Nginx configuration disables password changes.
 
@@ -60,7 +60,7 @@ Get bundles from [GitHub Releases](https://github.com/liuarui/silencer/releases/
 
 ### Browser web-chat extension
 
-Download [Silencer Web Chat 1.1.2](https://github.com/liuarui/silencer/releases/download/v1.1.2/silencer-webchat-1.1.2.zip), extract it, open `chrome://extensions` in Chrome/Chromium, enable Developer mode and choose **Load unpacked**. In the extension settings, enter your Silencer gateway URL and extension token, then grant access to the sites you use. ChatGPT, Gemini and DeepSeek text conversations are verified. Images, audio, file uploads, WebSocket and other sites are not covered. Official Docker images keep the bridge off until an administrator enables it in gateway settings; set `SILENCER_EXTENSION_DISABLED=1` to hard-disable the extension API.
+Download [Silencer Web Chat 1.1.2](https://github.com/liuarui/silencer/releases/download/v1.1.2/silencer-webchat-1.1.2.zip), or browse its [reviewed source](https://github.com/liuarui/silencer/tree/v1.1.2/extension). Extract the ZIP, open `chrome://extensions` in Chrome/Chromium, enable Developer mode and choose **Load unpacked**. In the extension settings, enter your Silencer gateway URL and extension token, then grant access to the sites you use. ChatGPT, Gemini and DeepSeek text conversations are verified. Images, audio, file uploads, WebSocket and other sites are not covered. Official Docker images keep the bridge off until an administrator enables it in gateway settings; set `SILENCER_EXTENSION_DISABLED=1` to hard-disable the extension API.
 
 ## Connect a client
 

@@ -29,6 +29,10 @@ if command -v g++ >/dev/null 2>&1; then
   (cd "$ROOT/gateway" && CGO_ENABLED=1 CGO_LDFLAGS="-L$native_dir -Wl,-rpath,$native_dir" go test -tags silencer_engine ./...)
   echo "[go] production gateway build"
   (cd "$ROOT/gateway" && CGO_ENABLED=1 CGO_LDFLAGS="-L$native_dir -Wl,-rpath,$native_dir" go build -tags silencer_engine -trimpath -o "$native_dir/silencer-gateway" ./cmd/gateway)
+  if [[ -f "$ROOT/extension/manifest.json" ]]; then
+    echo "[extension] native gateway integration"
+    python3 "$ROOT/extension/tests/native.py" "$native_dir/silencer-gateway"
+  fi
   if command -v clang++ >/dev/null 2>&1; then
     fuzz_bin="$native_dir/engine_fuzz"
     if clang++ -std=c++17 -Wall -Wextra -Werror -fsanitize=fuzzer,address,undefined \
@@ -67,6 +71,16 @@ node "$ROOT/scripts/check-i18n.mjs"
 node --experimental-strip-types "$ROOT/scripts/check-env-import.mjs"
 if [[ -f "$ROOT/extension/manifest.json" ]]; then
   node "$ROOT/scripts/check-extension.mjs"
+  node "$ROOT/extension/tests/protocols.mjs"
+  node "$ROOT/scripts/test-extension-ledger.mjs"
+  node "$ROOT/scripts/test-extension-connection.mjs"
+  node "$ROOT/scripts/test-extension-registration.mjs"
+  extension_tmp="$(mktemp -d "${TMPDIR:-/tmp}/silencer-extension-release.XXXXXX")"
+  trap 'rm -rf "$extension_tmp"' EXIT
+  version="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$ROOT/frontend/package.json")"
+  python3 "$ROOT/scripts/assemble-extension-release.py" --version "$version" --output "$extension_tmp/silencer-webchat-$version.zip"
+  rm -rf "$extension_tmp"
+  trap - EXIT
 fi
 
 echo "verify-all: OK"

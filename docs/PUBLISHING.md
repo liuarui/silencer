@@ -10,10 +10,11 @@ source checkout and export step are no longer used.
 tests and documentation after review. Run `python3 scripts/check-public-release.py`
 before staging and again before pushing. Commit explicit reviewed paths.
 
-Browser extension source, dedicated UI/guides and private development dictionaries
+The reviewed browser extension source and tests live in `extension/` and are
+published in Git. Dedicated console UI/guides and private development dictionaries
 stay ignored locally. Runtime data, credentials, CA private keys, internal
 operational records and `.private/` backups must never enter Git or Docker build
-contexts. Local extension files are not needed by public builds.
+contexts.
 
 Preserve the sponsor sections at the end of `README.md` and `README_EN.md`.
 Update release text around them without deleting or replacing sponsor content.
@@ -26,20 +27,17 @@ Update release text around them without deleting or replacing sponsor content.
 4. Tag the verified commit `v<version>` and push that exact tag. The release workflow
    builds native packages, verifies each Docker platform before pushing candidates,
    combines the verified digests, checks published manifests and publishes assets.
-5. For releases that include the browser extension, build its independent ZIP from the
-   ignored local `extension/` source with `python3 scripts/assemble-extension-release.py
-   --version <version>`. Review the archive contents and checksum, then attach both files
-   to the already-published GitHub Release with `gh release upload v<version> <zip>
-   <zip>.sha256`. The extension source stays out of Git and CI; do not add it to the
-   public-source allowlist or Docker build context.
+5. The release workflow packages the reviewed `extension/` source into a separate
+   browser-extension ZIP and SHA-256 asset, then publishes them alongside native
+   packages. The extension source is part of GitHub source releases, but it is not
+   copied into Docker build contexts.
 6. Verify GitHub Release assets, installation manifest and Docker tags. Never move
    an existing version tag to hide a failed release; fix the issue explicitly.
 
-The extension packager accepts only an explicit file allowlist, validates the manifest
-version and supported-site lists, excludes tests and development bypasses, and produces
-a stable ZIP plus SHA-256 checksum. If the local extension source is unavailable, stop
-and restore it from the approved local backup; do not substitute a stale or unreviewed
-archive.
+The extension packager accepts only an explicit runtime file allowlist, validates the
+manifest version and supported-site lists, excludes tests and development bypasses,
+and produces a stable ZIP plus SHA-256 checksum. CI builds the ZIP from the exact
+tagged source; do not substitute a stale or unreviewed archive.
 
 Docker Hub CI uses repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
 Use a dedicated access token with read/write access, never an account password in

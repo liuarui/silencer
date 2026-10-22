@@ -200,9 +200,10 @@ For blue-green deployments, run the two candidates against shared MySQL and use
 atomically updates the Nginx upstream include before an optional reload.
 
 
-The browser extension is distributed as a separate GitHub Release ZIP; its
-source and dedicated UI remain outside the Git repository. Production images
-expose the extension API, but the bridge is disabled in the default control
+The browser extension source and tests are reviewed public files under `extension/`.
+The runtime package is distributed separately as a GitHub Release ZIP; dedicated
+console UI and guides remain local. Production images expose the extension API,
+but the bridge is disabled in the default control
 configuration and must be explicitly enabled by an administrator. Operators can
 force-disable the API with `SILENCER_EXTENSION_DISABLED=1`; in that mode,
 configuration edits cannot re-enable it.

@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "Silencer Browser Bridge",
+  "version": "1.1.2",
+  "version_name": "1.1.2",
+  "description": "连接用户指定的 Silencer 网关，为 ChatGPT、Gemini 和 DeepSeek 网页提供文字对话脱敏与流式还原。",
+  "minimum_chrome_version": "111",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "silencer-bridge@silencer.local",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs"
+  ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "shared.js",
+      "background.js"
+    ]
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Silencer Browser Bridge"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.chatgpt.com/*",
+        "*://*.gemini.google.com/*",
+        "*://*.deepseek.com/*"
+      ],
+      "js": [
+        "bridge-isolated.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.chatgpt.com/*",
+        "*://*.gemini.google.com/*",
+        "*://*.deepseek.com/*"
+      ],
+      "js": [
+        "webchat-protocols.js",
+        "bridge-main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    }
+  ]
+}

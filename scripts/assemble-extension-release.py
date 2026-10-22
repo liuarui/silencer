@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the locally ignored browser extension as a reproducible release asset."""
+"""Package the reviewed browser extension source as a reproducible release asset."""
 from __future__ import annotations
 
 import argparse
@@ -62,7 +62,7 @@ def safe_read(source: Path, relative: str) -> bytes:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True, help="Stable release version, e.g. 1.1.2")
-    parser.add_argument("--source", type=Path, default=ROOT / "extension", help="Local ignored extension source")
+    parser.add_argument("--source", type=Path, default=ROOT / "extension", help="Reviewed extension source directory")
     parser.add_argument("--output", type=Path, help="ZIP destination (default: dist_extension/silencer-webchat-VERSION.zip)")
     args = parser.parse_args()
 

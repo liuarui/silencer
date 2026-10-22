@@ -6,7 +6,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 SPONSORS = '## Sponsors\n\nSponsored by [ForZTN](https://sponsorship.forztn.com/github.com/liuarui/silencer).\n'
-PRIVATE = ('extension/', '.private/', 'frontend/src/private/', 'docs/verification/', '.claude/', '.codex/', '.pi/')
+PRIVATE = ('.private/', 'frontend/src/private/', 'docs/verification/', '.claude/', '.codex/', '.pi/')
 
 
 def main():
